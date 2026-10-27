@@ -1,0 +1,4 @@
+# Sadece uygulama yayınlanır; eski defter ve yedekler kişisel veri içerir
+*
+!index.html
+!.gitignore
