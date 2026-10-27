@@ -114,7 +114,7 @@ h2{font-size:1.05rem;margin:0}
 .paidbtn{background:var(--ok);border-color:var(--ok);color:var(--surface);font-weight:600}
 
 /* satış: form */
-.sform{display:flex;flex-direction:column;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.sform{display:flex;flex-direction:column;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:14px}
 .editbar{background:var(--tint);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.9rem;font-weight:600}
 .editbar button{padding:6px 12px;font-weight:400}
 details.bsel{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -219,14 +219,6 @@ nav.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--
   <!-- ===== SATIŞ ===== -->
   <section class="page" id="p-satis">
     <header class="top"><h1>Satış</h1><span class="hint" id="vDay"></span></header>
-    <div class="daynav">
-      <button type="button" id="dPrev" aria-label="Önceki gün">‹</button>
-      <input type="date" id="vDate" aria-label="Gösterilen gün">
-      <button type="button" id="dNext" aria-label="Sonraki gün">›</button>
-    </div>
-    <div class="dsum" id="dSum"></div>
-    <div class="list" id="sList"></div>
-
     <div class="sform" id="sForm">
       <div class="editbar" id="sEditBar" hidden><span id="sEditTxt"></span><button type="button" id="sCancel">Vazgeç</button></div>
       <div class="list" id="sBrands"></div>
@@ -243,6 +235,14 @@ nav.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--
       <p class="err" id="sErr" role="alert"></p>
       <div class="savebar"><span class="tot" id="sTot">0 ₺</span><button type="button" class="primary" id="sSave">Kaydet</button></div>
     </div>
+
+    <div class="daynav">
+      <button type="button" id="dPrev" aria-label="Önceki gün">‹</button>
+      <input type="date" id="vDate" aria-label="Gösterilen gün">
+      <button type="button" id="dNext" aria-label="Sonraki gün">›</button>
+    </div>
+    <div class="dsum" id="dSum"></div>
+    <div class="list" id="sList"></div>
   </section>
 
   <!-- ===== KAYITLAR ===== -->
@@ -288,11 +288,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--
 
   <!-- ===== GELİR-GİDER ===== -->
   <section class="page" id="p-gider" hidden>
-    <header class="top"><h1>Gelir-Gider</h1></header>
-    <div class="kpis" id="cKpis"></div>
-    <button type="button" id="cMore" hidden>Daha eski kayıtları göster</button>
-    <div class="list" id="cList"></div>
-
+    <header class="top"><h1>Gelir-Gider</h1><span class="hint" id="cPerTxt"></span></header>
     <div class="sform" id="cForm">
       <div class="editbar" id="cEditBar" hidden><span id="cEditTxt"></span><button type="button" id="cCancel">Vazgeç</button></div>
       <div class="grid2">
@@ -308,6 +304,17 @@ nav.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--
         <button type="button" class="bgelir" id="cGelir">Gelir kaydet</button>
       </div>
     </div>
+
+    <div class="chips" id="cPer">
+      <button type="button" data-per="bugun" aria-pressed="false">Bugün</button>
+      <button type="button" data-per="7" aria-pressed="false">Son 7 gün</button>
+      <button type="button" data-per="ay" aria-pressed="true">Bu ay</button>
+      <button type="button" data-per="gecen" aria-pressed="false">Geçen ay</button>
+      <button type="button" data-per="tum" aria-pressed="false">Tümü</button>
+    </div>
+    <div class="kpis" id="cKpis"></div>
+    <div class="list" id="cList"></div>
+    <button type="button" id="cMore" hidden>Daha fazla göster</button>
   </section>
 
   <!-- ===== YEDEK ===== -->
@@ -542,7 +549,7 @@ function palTxt(koli, kpp) {
 function saleTotal(s) { return s.items.reduce(function (t, i) { return t + i.n * i.price; }, 0); }
 function salePaid(s) { var t = saleTotal(s); return Math.min(s.paid == null ? t : s.paid, t); }
 function saleOpen(s) { return saleTotal(s) - salePaid(s) > 0.004; }
-function salesOn(date) { return db.sales.filter(function (s) { return s.date === date; }).sort(function (a, b) { return cmp(entKey(a), entKey(b)); }); }
+function salesOn(date) { return db.sales.filter(function (s) { return s.date === date; }).sort(function (a, b) { return cmp(entKey(b), entKey(a)); }); }
 
 /* ---------- satış sayfası: günün listesi ---------- */
 var view = today();
@@ -696,12 +703,13 @@ function deleteSale(id) {
 
 /* ---------- kayıtlar ---------- */
 var rPer = 'ay', rPay = '', rLimit = 40;
-function period() {
+function period(per) {
   var t = today(), m = t.slice(0, 7);
-  if (rPer === 'bugun') return { from: t, to: t, txt: dateTR(t) };
-  if (rPer === '7') return { from: shiftDay(t, -6), to: t, txt: dateTR(shiftDay(t, -6)) + ' – ' + dateTR(t) };
-  if (rPer === 'ay') return { from: m + '-01', to: m + '-31', txt: new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }) };
-  if (rPer === 'gecen') { var last = shiftDay(m + '-01', -1); return { from: last.slice(0, 7) + '-01', to: last, txt: dateTR(last.slice(0, 7) + '-01') + ' – ' + dateTR(last) }; }
+  per = per || rPer;
+  if (per === 'bugun') return { from: t, to: t, txt: dateTR(t) };
+  if (per === '7') return { from: shiftDay(t, -6), to: t, txt: dateTR(shiftDay(t, -6)) + ' – ' + dateTR(t) };
+  if (per === 'ay') return { from: m + '-01', to: m + '-31', txt: new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }) };
+  if (per === 'gecen') { var last = shiftDay(m + '-01', -1); return { from: last.slice(0, 7) + '-01', to: last, txt: dateTR(last.slice(0, 7) + '-01') + ' – ' + dateTR(last) }; }
   return { from: '', to: '', txt: 'Tüm kayıtlar' };
 }
 function inPer(d, p) { return (!p.from || d >= p.from) && (!p.to || d <= p.to); }
@@ -823,21 +831,22 @@ function renderRecordList(p) {
 }
 
 /* ---------- gelir-gider ---------- */
-var cEdit = null, cTimeTouched = false, cShowAll = false;
+var cEdit = null, cTimeTouched = false, cPer = 'ay', cLimit = 40;
 function cashSign(x) { return x.kind === 'gelir' ? x.amount : -x.amount; }
 function renderCash() {
-  var list = db.cash.slice().sort(function (a, b) { return cmp(entKey(a), entKey(b)); });
-  var month = today().slice(0, 7), inc = 0, out = 0;
-  list.forEach(function (x) { if (x.date.slice(0, 7) === month) { if (x.kind === 'gelir') inc += x.amount; else out += x.amount; } });
+  var p = period(cPer), inc = 0, out = 0;
+  var list = db.cash.filter(function (x) { return inPer(x.date, p); }).sort(function (a, b) { return cmp(entKey(b), entKey(a)); });
+  list.forEach(function (x) { if (x.kind === 'gelir') inc += x.amount; else out += x.amount; });
   var net = inc - out;
+  $('cPerTxt').textContent = p.txt;
   $('cKpis').innerHTML =
-    '<div class="kpi ok"><span>Bu ay gelir</span><b>' + money(inc) + '</b></div>'
-    + '<div class="kpi bad"><span>Bu ay gider</span><b>' + money(out) + '</b></div>'
-    + '<div class="kpi wide ' + (net < 0 ? 'bad' : 'ok') + '"><span>Bu ay net (gelir − gider)</span><b>' + (net < 0 ? '−' : '') + money(Math.abs(net)) + '</b></div>';
-  // son 30 gün; daha eskisi istenirse
-  var cut = shiftDay(today(), -30), shown = cShowAll ? list : list.filter(function (x) { return x.date >= cut; });
-  $('cMore').hidden = shown.length === list.length;
-  if (!shown.length) { $('cList').innerHTML = '<div class="empty">' + (list.length ? 'Son 30 günde kayıt yok.' : 'Henüz gelir ya da gider yok.') + '</div>'; return; }
+    '<div class="kpi ok"><span>Gelir</span><b>' + money(inc) + '</b></div>'
+    + '<div class="kpi bad"><span>Gider</span><b>' + money(out) + '</b></div>'
+    + '<div class="kpi wide ' + (net < 0 ? 'bad' : 'ok') + '"><span>Net (gelir − gider)</span><b>' + (net < 0 ? '−' : '') + money(Math.abs(net)) + '</b></div>';
+  var shown = list.slice(0, cLimit);
+  $('cMore').hidden = list.length <= cLimit;
+  $('cMore').textContent = 'Daha fazla göster (' + (list.length - cLimit) + ' kayıt daha)';
+  if (!shown.length) { $('cList').innerHTML = '<div class="empty">' + (db.cash.length ? 'Bu dönemde kayıt yok.' : 'Henüz gelir ya da gider yok.') + '</div>'; return; }
   var h = '', day = null;
   shown.forEach(function (x) {
     if (x.date !== day) {
@@ -874,7 +883,6 @@ function resetCash() {
 function startCashEdit(id) {
   var x = byId(db.cash, id); if (!x) return;
   cEdit = id; cTimeTouched = true;
-  if (x.date < shiftDay(today(), -30)) cShowAll = true;
   $('cDesc').value = x.desc; $('cNote').value = x.note || ''; $('cAmt').value = amt(x.amount);
   $('cDate').value = x.date; $('cTime').value = x.time || ''; $('cErr').textContent = '';
   $('cEditTxt').textContent = dateTR(x.date) + ' ' + (x.time || '') + ' kaydını düzenliyorsun';
@@ -897,7 +905,8 @@ function saveCash(kind) {
   x.kind = kind; x.date = date; x.time = time; x.desc = desc; x.amount = a;
   x.note = $('cNote').value.split('\n').map(clean).filter(Boolean).join('\n');
   if (!persist()) return;
-  if (date < shiftDay(today(), -30)) cShowAll = true;
+  // seçili dönemin dışına düştüyse görünsün diye tümüne geç
+  if (!inPer(date, period(cPer))) { cPer = 'tum'; pressChip($('cPer'), 'per', cPer); }
   resetCash(); renderCash();
   toast((kind === 'gelir' ? 'Gelir' : 'Gider') + (isNew ? ' kaydedildi: ' : ' güncellendi: ') + money(a));
 }
@@ -1354,14 +1363,9 @@ function go(tab) {
   window.scrollTo(0, 0);
   if (tab === 'gider') {
     if (!cEdit && !cTimeTouched) $('cTime').value = nowHM();
-    var cy = $('cForm').getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4;
-    window.scrollTo(0, Math.max(0, cy));
   }
   if (tab === 'satis') {
-    // en yeni satışlar ve form birlikte görünsün
     if (!sEdit && !timeTouched) $('sTime').value = nowHM();
-    var y = $('sForm').getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4;
-    window.scrollTo(0, Math.max(0, y));
   }
 }
 
@@ -1434,7 +1438,8 @@ $('rMore').addEventListener('click', function () { rLimit += 40; renderRecordLis
 $('cGider').addEventListener('click', function () { saveCash('gider'); });
 $('cGelir').addEventListener('click', function () { saveCash('gelir'); });
 $('cCancel').addEventListener('click', function () { resetCash(); renderCash(); });
-$('cMore').addEventListener('click', function () { cShowAll = true; renderCash(); });
+$('cPer').addEventListener('click', function (ev) { var b = ev.target.closest('[data-per]'); if (!b) return; cPer = b.dataset.per; cLimit = 40; pressChip(this, 'per', cPer); renderCash(); });
+$('cMore').addEventListener('click', function () { cLimit += 40; renderCash(); });
 $('cDate').addEventListener('change', cMarkPast);
 $('cTime').addEventListener('input', function () { cTimeTouched = true; });
 ['cDesc', 'cAmt'].forEach(function (id) { $(id).addEventListener('input', function () { $('cErr').textContent = ''; }); });
