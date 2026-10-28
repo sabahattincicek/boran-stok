@@ -129,6 +129,13 @@ h2{font-size:1.05rem;margin:0}
 .its li span:last-child{font-family:var(--mono);font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .sale .ps{font-size:.85rem;font-weight:600;color:var(--ok)}
 .sale.no .ps{color:var(--bad)}
+.cols{list-style:none;margin:0;padding:0;font-size:.82rem;color:var(--muted)}
+.cols li{display:flex;justify-content:space-between;gap:8px}
+.cols li span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.colf{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.colf .pr{flex:1 1 110px}
+.colf input[type=date]{flex:1 1 140px;width:auto;min-height:44px;padding:0 8px}
+.colf .paidbtn{flex:none;min-height:44px}
 .acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
 .acts button{padding:7px 12px;font-size:.85rem}
 .paidbtn{background:var(--ok);border-color:var(--ok);color:var(--surface);font-weight:600}
@@ -167,6 +174,7 @@ details.bsel summary .c{margin-left:auto;font-size:.78rem;font-weight:600;text-t
 /* kayıtlar */
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chips button{padding:7px 13px;font-size:.85rem;border-radius:999px}
+.chips .refresh{margin-left:auto}
 .chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 .kpi.hero b{font-size:1.45rem}
 .kpi.warn small{color:var(--warn)}

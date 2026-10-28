@@ -150,6 +150,14 @@ function palTxt(koli, kpp) {
 function saleTotal(s) { return s.items.reduce(function (t, i) { return t + i.n * i.price; }, 0); }
 function salePaid(s) { var t = saleTotal(s); return Math.min(s.paid == null ? t : s.paid, t); }
 function saleOpen(s) { return saleTotal(s) - salePaid(s) > 0.004; }
+// paranın alındığı günler: satış anında ödenen satış gününe, sonraki tahsilatlar kendi tarihine
+function saleCollected(s) {
+  var left = salePaid(s), cols = s.cols || [];
+  var first = left - cols.reduce(function (t, x) { return t + x.amount; }, 0), out = [];
+  if (first > 0.004) { out.push({ date: s.date, amount: first }); left -= first; }
+  cols.forEach(function (x) { var a = Math.min(x.amount, left); if (a > 0.004) { out.push({ date: x.date, amount: a }); left -= a; } });
+  return out;
+}
 function salesOn(date) { return db.sales.filter(function (s) { return s.date === date; }).sort(function (a, b) { return cmp(entKey(b), entKey(a)); }); }
 
 /* ---------- satış sayfası: günün listesi ---------- */
@@ -166,15 +174,19 @@ function renderSalesDay() {
   $('sList').innerHTML = list.length ? list.map(saleHTML).join('') : '<div class="empty">Bu gün satış yok.</div>';
 }
 function saleHTML(s) {
-  var t = saleTotal(s), p = salePaid(s), open = saleOpen(s);
+  var t = saleTotal(s), p = salePaid(s), open = saleOpen(s), cols = s.cols || [], last = cols[cols.length - 1];
   return '<div class="sale' + (open ? ' no' : '') + (sEdit === s.id ? ' editing' : '') + '">'
     + '<div class="sh"><span class="tm">' + esc(s.time || '--:--') + '</span><span class="pm">' + (s.pay === 'havale' ? 'Havale' : 'Nakit') + '</span><b>' + money(t) + '</b></div>'
     + '<ul class="its">' + s.items.map(function (i) {
       return '<li><span>' + fmt(i.n) + ' × ' + esc(pname(i.pid)) + '</span><span>' + fmt(i.price) + ' → ' + money(i.n * i.price) + '</span></li>';
     }).join('') + '</ul>'
-    + '<div class="ps">' + (open ? (p > 0 ? 'Ödenen ' + money(p) + ' · kalan ' + money(t - p) : 'Ödenmedi · ' + money(t) + ' alacak') : 'Ödendi') + '</div>'
+    + '<div class="ps">' + (open ? (p > 0 ? 'Ödenen ' + money(p) + ' · kalan ' + money(t - p) : 'Ödenmedi · ' + money(t) + ' alacak') : 'Ödendi' + (last ? ' · ' + dateTR(last.date) : '')) + '</div>'
+    + (cols.length ? '<ul class="cols">' + cols.map(function (x) { return '<li><span>' + dateTR(x.date) + ' tahsilat</span><span>' + money(x.amount) + '</span></li>'; }).join('') + '</ul>' : '')
     + (s.note ? '<div class="note">' + esc(s.note) + '</div>' : '')
-    + '<div class="acts">' + (open ? '<button type="button" class="paidbtn" data-spaid="' + s.id + '">Ödendi</button>' : '')
+    + (open ? '<div class="colf"><label class="pr"><input data-camt inputmode="decimal" autocomplete="off" value="' + amt(t - p) + '" aria-label="Ödenen tutar">₺</label>'
+      + '<input type="date" data-cdate value="' + today() + '" aria-label="Ödeme tarihi">'
+      + '<button type="button" class="paidbtn" data-spaid="' + s.id + '">Ödendi</button></div>' : '')
+    + '<div class="acts">'
     + '<button type="button" data-sedit="' + s.id + '">Düzenle</button>'
     + '<button type="button" class="danger" data-sdel="' + s.id + '">Sil</button></div>'
     + '</div>';
@@ -288,12 +300,19 @@ function saveSale() {
   resetSaleForm(); renderAll();
   toast((isNew ? 'Satış kaydedildi' : 'Satış güncellendi') + ' · ' + money(total) + (paid < total ? ' · kalan ' + money(total - paid) : ''));
 }
-function markPaid(id) {
+// satış kartındaki kutudan: girilen tutar (varsayılan kalanın tamamı) o tarihte tahsil edilir
+function markPaid(id, btn) {
   var s = byId(db.sales, id); if (!s) return;
+  var box = btn.closest('.colf'), raw = box.querySelector('[data-camt]').value.trim(), a = num(raw), d = box.querySelector('[data-cdate]').value;
   var rem = saleTotal(s) - salePaid(s);
-  s.paid = saleTotal(s);
-  persist(); renderAll();
-  toast(money(rem) + ' tahsil edildi, satış ödendi.');
+  var err = !raw ? 'Ödenen tutarı yaz.' : a == null || a <= 0 ? 'Tutarı sayı olarak yaz, ör. 150.' : a > rem + 0.004 ? 'Kalan alacaktan (' + money(rem) + ') fazla olamaz.' : !d ? 'Ödeme tarihini seç.' : '';
+  if (err) { toast(err); return; }
+  s.paid = salePaid(s) + a;
+  (s.cols = s.cols || []).push({ date: d, amount: a });
+  if (!$('p-kayit').hidden) rKeep[id] = true; // borçlu listesinden yenileyene kadar düşmesin
+  if (!persist()) return;
+  renderAll();
+  toast(money(a) + ' tahsil edildi · ' + (rem - a > 0.004 ? 'kalan ' + money(rem - a) : 'satış ödendi'));
 }
 function deleteSale(id) {
   db.sales = db.sales.filter(function (s) { return s.id !== id; });
@@ -303,7 +322,7 @@ function deleteSale(id) {
 }
 
 /* ---------- kayıtlar ---------- */
-var rPer = 'ay', rPay = '', rLimit = 40;
+var rPer = 'ay', rPay = '', rLimit = 40, rKeep = {};
 function period(per) {
   var t = today(), m = t.slice(0, 7);
   per = per || rPer;
@@ -334,11 +353,12 @@ function kpi(label, val, small, cls) {
 function renderRecords() {
   var p = period(), ct = costTable();
   $('rPerTxt').textContent = p.txt;
-  var S = { n: 0, koli: 0, ciro: 0, paid: 0, nakit: 0, havale: 0, cost: 0, knownRev: 0, unkRev: 0, unkKoli: 0 }, prod = {};
+  var S = { n: 0, koli: 0, ciro: 0, rem: 0, paid: 0, nakit: 0, havale: 0, cost: 0, knownRev: 0, unkRev: 0, unkKoli: 0 }, prod = {};
   db.sales.forEach(function (s) {
+    // tahsilat, satış tarihine değil paranın alındığı tarihe göre sayılır
+    saleCollected(s).forEach(function (x) { if (inPer(x.date, p)) { S.paid += x.amount; S[s.pay === 'havale' ? 'havale' : 'nakit'] += x.amount; } });
     if (!inPer(s.date, p)) return;
-    var pd = salePaid(s);
-    S.n++; S.ciro += saleTotal(s); S.paid += pd; S[s.pay === 'havale' ? 'havale' : 'nakit'] += pd;
+    S.n++; S.ciro += saleTotal(s); S.rem += saleTotal(s) - salePaid(s);
     s.items.forEach(function (i) {
       var r = i.n * i.price, c = unitCost(ct, i.pid, s.date), o = prod[i.pid] = prod[i.pid] || { koli: 0, ciro: 0, cost: 0, unk: 0 };
       S.koli += i.n; o.koli += i.n; o.ciro += r;
@@ -350,11 +370,11 @@ function renderRecords() {
   db.cash.forEach(function (x) { if (inPer(x.date, p)) { if (x.kind === 'gelir') inc += x.amount; else out += x.amount; } });
   db.entries.forEach(function (e) { if (inPer(e.date, p) && e.total != null) buy += e.total; });
   db.ships.forEach(function (s) { s.pays.forEach(function (x) { if (inPer(x.date, p)) supPaid += x.amount; }); });
-  var gross = S.knownRev - S.cost, net = gross + inc - out, flow = S.paid + inc - out - supPaid, rem = S.ciro - S.paid;
+  var gross = S.knownRev - S.cost, net = gross + inc - out, flow = S.paid + inc - out - supPaid, rem = S.rem;
   var unkTxt = S.unkKoli ? fmt(S.unkKoli) + ' koli alış fiyatı bilinmiyor (' + money(S.unkRev) + ' ciro hariç)' : '';
   $('rKpis').innerHTML =
     kpi('Ciro', money(S.ciro), S.n + ' satış · ' + fmt(S.koli) + ' koli')
-    + kpi('Tahsil edilen', money(S.paid), 'nakit ' + money(S.nakit) + ' · havale ' + money(S.havale), 'ok')
+    + kpi('Tahsil edilen', money(S.paid), 'ödeme tarihine göre · nakit ' + money(S.nakit) + ' · havale ' + money(S.havale), 'ok')
     + kpi('Alacak', money(rem), 'bu dönemin satışlarından', rem > 0.004 ? 'bad' : '')
     + kpi('Malın maliyeti', money(S.cost), unkTxt || 'stok girişlerindeki alış fiyatından', unkTxt ? 'warn' : '')
     + kpi('Brüt kâr', sm(gross), (S.knownRev ? 'kâr oranı %' + fmt(gross / S.knownRev * 100) : 'ciro − maliyet') + (unkTxt ? ' · bilinmeyenler hariç' : ''), gross < 0 ? 'bad' : 'ok')
@@ -409,7 +429,7 @@ function renderRecordList(p) {
   var q = fold($('rQ').value.trim());
   var list = db.sales.filter(function (s) {
     if (!inPer(s.date, p)) return false;
-    if (rPay === 'borclu' && !saleOpen(s)) return false;
+    if (rPay === 'borclu' && !saleOpen(s) && !rKeep[s.id]) return false;
     if ((rPay === 'nakit' || rPay === 'havale') && (s.pay || 'nakit') !== rPay) return false;
     return !q || fold(saleText(s)).indexOf(q) >= 0;
   }).sort(function (a, b) { return cmp(entKey(b), entKey(a)); });
@@ -862,6 +882,7 @@ function exportText() {
     L.push('[' + (s.pay || 'nakit') + ']');
     s.items.forEach(function (i) { var p = db.products[i.pid]; L.push(amt(i.n) + 'x ' + p.brand + ' / ' + p.variety + ' @ ' + amt(i.price) + ' tl'); });
     L.push('toplam ' + amt(saleTotal(s)) + ' tl / ödenen ' + amt(salePaid(s)) + ' tl');
+    (s.cols || []).forEach(function (x) { L.push('tahsilat ' + dateTR(x.date) + ' ' + amt(x.amount) + ' tl'); });
   });
   L.push('', '', '', '', '== GELİR GİDER ==', '');
   byDayBlocks(db.cash, L, function (x) {
@@ -907,10 +928,10 @@ function parseBackup(text) {
     if ((m = t.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})$/))) { date = m[3] + '-' + pad2(m[2]) + '-' + pad2(m[1]); cur = null; time = ''; lastSale = null; return; }
     if ((m = t.match(/^(\d{1,2}):(\d{2})$/))) { time = pad2(m[1]) + ':' + m[2]; cur = null; return; }
     if (f === '[sayim]' && inSec('sayim')) { cur = { kind: 'c', date: date, time: time, brand: '', variety: '', koli: null }; counts.push(cur); time = ''; return; }
-    if (f === '[odenmedi]' && inSec('satis')) { cur = lastSale = { kind: 's', date: date, time: time, pay: 'nakit', items: [], paid: 0, note: [] }; sales.push(cur); time = ''; return; }
+    if (f === '[odenmedi]' && inSec('satis')) { cur = lastSale = { kind: 's', date: date, time: time, pay: 'nakit', items: [], paid: 0, note: [], cols: [] }; sales.push(cur); time = ''; return; }
     if ((m = f.match(/^\[(gelir|gider)\]$/)) && inSec('gelir')) { cur = { kind: 'g', type: m[1], date: date, time: time, desc: '', amount: null, note: [] }; cash.push(cur); time = ''; return; }
     if (f === '[giris]' && inSec('stok')) { cur = { kind: 'e', date: date, time: time, lines: [], pays: [], paid: null, note: [] }; ents.push(cur); time = ''; return; }
-    if ((m = f.match(/^\[(nakit|havale)\]$/)) && inSec('satis')) { cur = lastSale = { kind: 's', date: date, time: time, pay: m[1], items: [], paid: null, note: [] }; sales.push(cur); time = ''; return; }
+    if ((m = f.match(/^\[(nakit|havale)\]$/)) && inSec('satis')) { cur = lastSale = { kind: 's', date: date, time: time, pay: m[1], items: [], paid: null, note: [], cols: [] }; sales.push(cur); time = ''; return; }
     // eski defterde boş satırdan sonra tek başına kalan not: o günün bir önceki satışına eklenir
     if (!cur && lastSale && (m = t.match(/^\((.*)\)$/))) { if (m[1].trim()) lastSale.note.push(m[1].trim()); return; }
     if (!cur) return;
@@ -924,6 +945,9 @@ function parseBackup(text) {
     }
     if (cur.kind === 'e' && (m = t.match(/^[öÖoO]deme\s+(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})\s+([\d.,]+)\s*(?:tl|₺)?\s*(?::\s*(.*))?$/i))) {
       cur.pays.push({ date: m[3] + '-' + pad2(m[2]) + '-' + pad2(m[1]), amount: num(m[4]), note: clean(m[5] || '') }); return;
+    }
+    if (cur.kind === 's' && (m = f.match(/^tahsilat\s+(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})\s+([\d.,]+)\s*(?:tl|₺)?$/))) {
+      cur.cols.push({ date: m[3] + '-' + pad2(m[2]) + '-' + pad2(m[1]), amount: num(m[4]) }); return;
     }
     if (cur.kind === 'g') {
       if (cur.desc && (m = f.match(/^([\d.,]+)\s*(tl|₺)$/))) cur.amount = num(m[1]);
@@ -1030,7 +1054,7 @@ function applyImport(replace) {
     var s = saleSig(x.date, x.time, x.pay, paid, note, x.items);
     if (have[s] > 0) { have[s]--; skipped++; return; }
     added++;
-    db.sales.push({ id: 's' + uid() + i, ts: base + i, date: x.date, time: x.time || '', pay: x.pay, paid: paid, note: note,
+    db.sales.push({ id: 's' + uid() + i, ts: base + i, date: x.date, time: x.time || '', pay: x.pay, paid: paid, note: note, cols: x.cols,
       items: x.items.map(function (it) { return { pid: ensureProduct(it.brand, it.variety), n: it.n, price: it.price }; }) });
   });
   tidy(); persist();
@@ -1094,7 +1118,7 @@ document.addEventListener('click', function (ev) {
   else if (b.dataset.shpsave) savePay(b.dataset.shpsave);
   else if (b.dataset.shpcancel != null) { payOpen = null; renderStock(); }
   else if (b.dataset.shpdel) arm(b, function () { deletePay(b.dataset.shpdel); });
-  else if (b.dataset.spaid) markPaid(b.dataset.spaid);
+  else if (b.dataset.spaid) markPaid(b.dataset.spaid, b);
   else if (b.dataset.sedit) {
     var se = byId(db.sales, b.dataset.sedit); if (!se) return;
     if ($('p-satis').hidden) go('satis');
@@ -1143,7 +1167,8 @@ $('sCancel').addEventListener('click', function () { resetSaleForm(); renderSale
 // kayıtlar
 function pressChip(box, attr, v) { box.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset[attr] === v)); }); }
 $('rPer').addEventListener('click', function (ev) { var b = ev.target.closest('[data-per]'); if (!b) return; rPer = b.dataset.per; rLimit = 40; pressChip(this, 'per', rPer); renderRecords(); });
-$('rPay').addEventListener('click', function (ev) { var b = ev.target.closest('[data-rpay]'); if (!b) return; rPay = b.dataset.rpay; rLimit = 40; pressChip(this, 'rpay', rPay); renderRecordList(period()); });
+$('rPay').addEventListener('click', function (ev) { var b = ev.target.closest('[data-rpay]'); if (!b) return; rPay = b.dataset.rpay; rLimit = 40; rKeep = {}; pressChip(this, 'rpay', rPay); renderRecordList(period()); });
+$('rRefresh').addEventListener('click', function () { rKeep = {}; renderRecordList(period()); toast('Liste yenilendi.'); });
 $('rQ').addEventListener('input', function () { rLimit = 40; renderRecordList(period()); });
 $('rMore').addEventListener('click', function () { rLimit += 40; renderRecordList(period()); });
 
