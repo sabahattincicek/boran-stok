@@ -792,14 +792,34 @@ function calc() {
     koliSum += koli;
     if (t.total != null) { sum += t.total; priced++; }
   });
+  // genel özet: çeşit tablosu, palet, mal bedeli, giderler, toplam ve ortalama koli başı maliyet
   var all = [];
-  if (fRows.length > 1 || priced) {
-    all.push('<span><b>' + fRows.length + ' ürün · ' + fmt(koliSum) + ' koli</b></span>');
-    if (priced) all.push('<span class="n">Girişin toplamı <b>' + money(sum) + '</b></span>');
+  if (koliSum) {
+    var palSum = 0, noPal = 0, pKoli = 0, pCost = 0, trs = '';
+    rows.forEach(function (f, i) {
+      var t = sp.lines[i], k = f.koli || 0, c = t.total != null ? t.total + xs[i] : null;
+      if (f.palet && !f.bad) palSum += f.palet; else if (k) noPal++;
+      if (c != null && k) { pKoli += k; pCost += c; }
+      trs += '<tr><td>' + esc(f.brand && f.variety ? f.brand + ' ' + f.variety : (i + 1) + '. ürün') + '</td><td>' + fmt(k) + '</td>'
+        + '<td>' + (c != null ? money(c) : '—') + '</td><td>' + (c != null && k ? money(c / k) : '—') + '</td></tr>';
+    });
+    if (rows.length > 1) {
+      all.push('<div class="tbl"><table><thead><tr><th>Çeşit</th><th>Koli</th><th>Maliyet</th><th>Koli başı</th></tr></thead><tbody>' + trs + '</tbody>'
+        + '<tfoot><tr><td>Toplam</td><td>' + fmt(koliSum) + '</td><td>' + (pKoli ? money(pCost) : '—') + '</td><td>' + (pKoli ? money(pCost / pKoli) : '—') + '</td></tr></tfoot></table></div>');
+    }
+    all.push('<span><b>' + rows.length + ' çeşit · ' + fmt(koliSum) + ' koli' + (palSum ? ' · ' + fmt(palSum) + ' palet' : '') + '</b>'
+      + (palSum && noPal ? ' (' + noPal + ' çeşidin paleti bilinmiyor)' : '') + '</span>');
+    if (priced) all.push('<span class="n">Mal bedeli (toptancıya) <b>' + money(sum) + '</b></span>');
+    if (xc.sum) all.push('<span class="n">Nakliye + ek gider <b>' + money(xc.sum) + '</b> <small>(toptancı borcuna eklenmez)</small></span>');
+    if (pKoli) {
+      all.push('<span class="n">Toplam maliyet <b>' + money(pCost) + '</b></span>');
+      all.push('<span class="n">Ortalama koli başı maliyet <b>' + money(pCost / pKoli) + '</b></span>');
+    }
+    if (priced < rows.length) all.push('<span class="new">' + (rows.length - priced) + ' çeşidin fiyatı yok' + (pKoli ? '; toplam ve ortalama onlarsız hesaplandı' : '') + '.</span>');
     var paid = num($('fPaid').value);
-    if (!editing && priced && paid != null && sum - paid > 0.004) all.push('<span>kalan borç ' + money(sum - paid) + '</span>');
+    if (!editing && priced && paid != null) all.push('<span>Şimdi ödenen ' + money(paid) + (sum - paid > 0.004 ? ' · kalan borç <b>' + money(sum - paid) + '</b>' : ' · borç kalmıyor') + '</span>');
+    else if (!editing && priced) all.push('<span>Toptancıya borç <b>' + money(sum) + '</b></span>');
   }
-  if (xc.sum) all.push('<span>Nakliye + ek gider <b>' + money(xc.sum) + '</b> (maliyete eklenir, toptancı borcuna eklenmez)</span>');
   if (sp.err) all.push('<span class="new">' + sp.err + '</span>');
   $('fCalc').innerHTML = all.join('');
 }
