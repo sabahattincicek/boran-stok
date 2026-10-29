@@ -365,17 +365,17 @@ function kpi(label, val, small, cls) {
 function renderRecords() {
   var p = period(), ct = costTable();
   $('rPerTxt').textContent = p.txt;
-  var S = { n: 0, koli: 0, ciro: 0, rem: 0, paid: 0, nakit: 0, havale: 0, cost: 0, knownRev: 0, unkRev: 0, unkKoli: 0 }, prod = {};
+  var S = { n: 0, koli: 0, ciro: 0, rem: 0, paid: 0, nakit: 0, havale: 0, cost: 0, knownRev: 0, unkRev: 0, unkKoli: 0 };
   db.sales.forEach(function (s) {
     // tahsilat, satış tarihine değil paranın alındığı tarihe göre sayılır
     saleCollected(s).forEach(function (x) { if (inPer(x.date, p)) { S.paid += x.amount; S[s.pay === 'havale' ? 'havale' : 'nakit'] += x.amount; } });
     if (!inPer(s.date, p)) return;
     S.n++; S.ciro += saleTotal(s); S.rem += saleTotal(s) - salePaid(s);
     s.items.forEach(function (i) {
-      var r = i.n * i.price, c = unitCost(ct, i.pid, s.date), o = prod[i.pid] = prod[i.pid] || { koli: 0, ciro: 0, cost: 0, unk: 0 };
-      S.koli += i.n; o.koli += i.n; o.ciro += r;
-      if (c == null) { S.unkRev += r; S.unkKoli += i.n; o.unk += r; }
-      else { S.cost += c * i.n; S.knownRev += r; o.cost += c * i.n; }
+      var r = i.n * i.price, c = unitCost(ct, i.pid, s.date);
+      S.koli += i.n;
+      if (c == null) { S.unkRev += r; S.unkKoli += i.n; }
+      else { S.cost += c * i.n; S.knownRev += r; }
     });
   });
   var inc = 0, out = 0, buy = 0, supPaid = 0, extra = 0;
@@ -399,26 +399,27 @@ function renderRecords() {
     + kpi('Net kâr', sm(net), 'brüt kâr + ek gelir − gider', 'wide hero ' + (net < 0 ? 'bad' : 'ok'))
     + kpi('Kasa hareketi', sm(flow), 'tahsilat + ek gelir − gider − toptancıya ödenen' + (extra ? ' − nakliye/ek gider' : ''), 'wide ' + (flow < 0 ? 'bad' : 'ok'));
 
-  // ürün tablosu
-  var rows = '', T = { koli: 0, ciro: 0, prof: 0, unk: false };
+  // stok durumu (şu an): son sayım + sonrasında giren − sonrasında satılan
+  var rows = '', T = { cnt: 0, in: 0, out: 0, now: 0 };
   brands().forEach(function (b) {
-    var ids = b.ids.filter(function (id) { return prod[id]; });
-    if (!ids.length) return;
-    rows += '<tr class="g"><td colspan="4">' + esc(b.name) + '</td></tr>';
-    ids.forEach(function (id) {
-      var o = prod[id], known = o.ciro - o.unk, pr = known - o.cost;
-      T.koli += o.koli; T.ciro += o.ciro;
-      if (o.unk) T.unk = true;
-      if (known) T.prof += pr;
-      rows += '<tr><td>' + esc(db.products[id].variety) + '</td><td>' + fmt(o.koli) + '</td><td>' + money(o.ciro) + '</td>'
-        + (known ? '<td' + (pr < 0 ? ' class="neg"' : '') + '>' + sm(pr) + (o.unk ? '*' : '') + '</td>' : '<td class="unk">?</td>') + '</tr>';
+    rows += '<tr class="g"><td colspan="5">' + esc(b.name) + '</td></tr>';
+    b.ids.forEach(function (id) {
+      var c = lastEntry(countsOf(id)), from = c ? entKey(c) : '', gin = 0, out = 0;
+      entriesOf(id).forEach(function (e) { if (entKey(e) > from) gin += e.koli; });
+      db.sales.forEach(function (s) { if (entKey(s) > from) s.items.forEach(function (x) { if (x.pid === id) out += x.n; }); });
+      var now = (c ? c.koli : 0) + gin - out;
+      T.cnt += c ? c.koli : 0; T.in += gin; T.out += out; T.now += now;
+      rows += '<tr><td>' + esc(db.products[id].variety) + '</td>'
+        + (c ? '<td>' + fmt(c.koli) + '<small class="unk"> · ' + dateTR(c.date) + '</small></td>' : '<td class="unk">sayım yok</td>')
+        + '<td>' + (gin ? '+' + fmt(gin) : '0') + '</td><td>' + (out ? '−' + fmt(out) : '0') + '</td>'
+        + '<td' + (now < 0 ? ' class="neg"' : '') + '><b>' + fmt(now) + '</b></td></tr>';
     });
   });
   $('rProd').innerHTML = rows
-    ? '<table><thead><tr><th>Ürün</th><th>Koli</th><th>Ciro</th><th>Kâr</th></tr></thead><tbody>' + rows + '</tbody>'
-      + '<tfoot><tr><td>Toplam</td><td>' + fmt(T.koli) + '</td><td>' + money(T.ciro) + '</td><td' + (T.prof < 0 ? ' class="neg"' : '') + '>' + sm(T.prof) + '</td></tr></tfoot></table>'
-      + (T.unk ? '<p class="hint" style="padding:8px 10px">? ve *: alış fiyatı bilinmeyen satışlar kâra katılmadı. O ürüne stok girişi (fiyatlı) yapınca hesaplanır.</p>' : '')
-    : '<div class="empty" style="border:0">Bu dönemde satış yok.</div>';
+    ? '<table><thead><tr><th>Ürün</th><th>Son sayım</th><th>Sonra giren</th><th>Sonra satılan</th><th>Şimdiki stok</th></tr></thead><tbody>' + rows + '</tbody>'
+      + '<tfoot><tr><td>Toplam</td><td>' + fmt(T.cnt) + '</td><td>+' + fmt(T.in) + '</td><td>−' + fmt(T.out) + '</td><td>' + fmt(T.now) + '</td></tr></tfoot></table>'
+      + '<p class="hint" style="padding:8px 10px">Koli olarak. Sayımı olmayan üründe en baştan beri giren ve satılan sayılır. Dönem seçiminden etkilenmez.</p>'
+    : '<div class="empty" style="border:0">Henüz ürün yok.</div>';
 
   // genel durum
   var allRem = 0, nOpen = 0, allCiro = 0, debt = 0, val = 0, valKoli = 0, valUnk = 0;
@@ -448,10 +449,14 @@ function renderRecordList(p) {
     if ((rPay === 'nakit' || rPay === 'havale') && (s.pay || 'nakit') !== rPay) return false;
     return !q || fold(saleText(s)).indexOf(q) >= 0;
   }).sort(function (a, b) { return cmp(entKey(b), entKey(a)); });
-  var tot = 0, rem = 0, koli = 0, by = {};
+  var tot = 0, rem = 0, koli = 0, by = {}, ct = costTable(), P = { prof: 0, unk: false };
   list.forEach(function (s) {
     tot += saleTotal(s); rem += saleTotal(s) - salePaid(s);
-    s.items.forEach(function (i) { var o = by[i.pid] = by[i.pid] || { n: 0, t: 0 }; o.n += i.n; o.t += i.n * i.price; koli += i.n; });
+    s.items.forEach(function (i) {
+      var o = by[i.pid] = by[i.pid] || { n: 0, t: 0, prof: 0, known: 0, unk: 0 }, r = i.n * i.price, c = unitCost(ct, i.pid, s.date);
+      o.n += i.n; o.t += r; koli += i.n;
+      if (c == null) { o.unk += i.n; P.unk = true; } else { o.prof += r - c * i.n; o.known += i.n; P.prof += r - c * i.n; }
+    });
   });
   $('rCount').textContent = list.length ? list.length + ' satış · ' + fmt(koli) + ' koli · ' + money(tot) + (rem > 0.004 ? ' · alacak ' + money(rem) : '') : '';
   // listedeki satışların çeşit özeti (filtre ve aramaya göre)
@@ -460,12 +465,15 @@ function renderRecordList(p) {
   Object.keys(by).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); }); // silinmiş ürünler
   ids.forEach(function (id) {
     var o = by[id];
-    rows += '<tr><td>' + esc(pname(id)) + '</td><td>' + fmt(o.n) + '</td><td>' + money(o.t) + '</td><td>' + (o.n ? money(o.t / o.n) : '—') + '</td></tr>';
+    rows += '<tr><td>' + esc(pname(id)) + '</td><td>' + fmt(o.n) + '</td><td>' + money(o.t) + '</td><td>' + (o.n ? money(o.t / o.n) : '—') + '</td>'
+      + (o.known ? '<td' + (o.prof < 0 ? ' class="neg"' : '') + '>' + sm(o.prof) + (o.unk ? '*' : '') + '</td>' : '<td class="unk">?</td>') + '</tr>';
   });
   $('rSum').hidden = !rows;
   $('rSum').innerHTML = rows
-    ? '<table><thead><tr><th>Çeşit</th><th>Koli</th><th>Tutar</th><th>Ort. koli</th></tr></thead><tbody>' + rows + '</tbody>'
-      + '<tfoot><tr><td>Toplam</td><td>' + fmt(koli) + '</td><td>' + money(tot) + '</td><td>' + (koli ? money(tot / koli) : '—') + '</td></tr></tfoot></table>'
+    ? '<div class="tblh">Satış tablosu</div>'
+      + '<table><thead><tr><th>Çeşit</th><th>Koli</th><th>Tutar</th><th>Ort. koli</th><th>Kâr</th></tr></thead><tbody>' + rows + '</tbody>'
+      + '<tfoot><tr><td>Toplam</td><td>' + fmt(koli) + '</td><td>' + money(tot) + '</td><td>' + (koli ? money(tot / koli) : '—') + '</td><td' + (P.prof < 0 ? ' class="neg"' : '') + '>' + sm(P.prof) + '</td></tr></tfoot></table>'
+      + (P.unk ? '<p class="hint" style="padding:6px 8px">? ve *: alış fiyatı bilinmeyen koliler kâra katılmadı.</p>' : '')
     : '';
   if (!list.length) { $('rList').innerHTML = '<div class="empty">Satış bulunamadı.</div>'; $('rMore').hidden = true; return; }
   var dayTot = {};

@@ -2,6 +2,28 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 11:05 — Kayıtlar: "Ürünlere göre satış" yerine Stok durumu; satış tablosuna Kâr
+- Kayıtlar'daki "Ürünlere göre satış" tablosu (`#rProd`) kaldırıldı, yerine "Stok durumu (şu an)" geldi: marka/çeşit başına Son sayım (koli · tarih) · Sonra giren · Sonra satılan · Şimdiki stok, Toplam satırıyla. Hesap `stockOf` ile aynı; sayım yoksa en baştan. Dönem seçiminden etkilenmiyor.
+- `renderRecords` içindeki ürün özeti (`prod`) artık kullanılmadığı için kaldırıldı.
+- Satış listesinin üstündeki küçük tabloya "Satış tablosu" başlığı (`.tblh`) ve Kâr sütunu eklendi (koli başı maliyet `unitCost`, satış tarihine göre). Alış fiyatı bilinmeyen çeşit "?", kısmen bilinmeyen "*".
+
+## 2026-10-29 10:50 — Kutu dökümleri geri alındı
+- Kullanıcı karışık buldu: Kayıtlar'daki tıklanabilir kutular ve açılan dökümler (aşağıdaki 10:25 ve 10:40 kayıtları) tamamen kaldırıldı. `app.js`, `index.html`, `style.css` commit d9ff3c8 haline döndürüldü; kutular tıklanmıyor. 10:25 ve 10:40 kayıtları artık geçerli değil.
+
+## 2026-10-29 10:40 — Nakliye ve ek giderler Malın maliyeti dökümüne taşındı
+- "Malın maliyeti" kutusu da tıklanabilir (`rDet = 'maliyet'`). Döküm: satılan ürün başına Koli · Alış · Nakliye/ek gider · Toplam, Toplam satırı kutudaki tutarla aynı. Fiyatı bilinmeyen koliler * ile not ediliyor.
+- Altında dönemin stok girişlerindeki Nakliye ve Ek giderler kalem kalem (tarih, açıklama, tutar), bunların kolilere paylaştırıldığı notuyla.
+- Gider dökümünde artık sadece elle girilen giderler var; Gider kutusunun alt yazısındaki "nakliye/ek gider … maliyette" kaldırıldı.
+- `unitCostParts` eklendi (koli başı alış ve gider payını ayrı veriyor); `unitCost` onu kullanıyor. Ürün özetinde `buy`, `extra`, `unkKoli` tutuluyor. Ortak grup satırları `detRows`.
+
+## 2026-10-29 10:25 — Kayıtlar: Ek gelir ve Gider kutularına döküm
+- Kayıtlar'daki "Ek gelir" ve "Gider" kutularına basınca (ya da Enter) KPI ızgarasının altında döküm açılıyor (`#rDet`, `renderDetail`, durum `rDet`). Aynı kutuya ya da "Kapat"a basınca kapanıyor. Seçili döneme göre.
+- Gider dökümü gruplar: Elle girilen giderler (Gelir-Gider sayfası), Nakliye, Stok girişi ek giderleri. Her grubun başında kalem sayısı ve toplamı, altında Tarih · Açıklama · Tutar.
+- Ek gelir dökümü: Elle girilen gelirler.
+- Nakliye ve ek giderler malın maliyetinde olduğu için Gider kutusunun toplamına katılmıyor (iki kez düşülmesin); dökümde * ile not var, kutunun alt yazısında da "nakliye/ek gider X maliyette" yazıyor.
+- `kpi()` 5. parametre `det` alıyor (tıklanabilir kutu). Stil: `.kpi.tap`, `.tbl.det`.
+- Önceki iş commit edildi (d9ff3c8).
+
 ## 2026-10-29 10:12 — Satış özeti tablosu tam genişlik
 - `.tbl.sum`'daki 520px genişlik sınırı kaldırıldı; masaüstünde de listeyle aynı genişlikte. Küçük yazı ve dar satır aralığı aynı kaldı.
 
