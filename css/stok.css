@@ -1,0 +1,85 @@
+/* Stok sayfası: marka grupları, girişler, ürün detayı, sayım */
+/* marka grupları (stok) */
+.brand{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.brand h3{margin:0;padding:10px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;background:var(--tint);font-size:1.05rem;text-transform:uppercase;letter-spacing:.04em}
+.brand h3 span{font-size:.78rem;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;white-space:nowrap}
+.prod{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:11px 14px;text-align:left}
+.brand h3+.prod{border-top:0}
+.prod .l{display:flex;flex-direction:column;gap:2px;min-width:0}
+.prod .v{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
+.prod .m{font-size:.76rem;color:var(--muted)}
+.prod .q{text-align:right;flex:none}
+.prod .q b{font-family:var(--mono);font-size:1.2rem;font-variant-numeric:tabular-nums}
+.prod .q small{display:block;font-size:.74rem;color:var(--muted)}
+.prod.low .q b{color:var(--bad)}
+
+.ent{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.ent .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ent .h b{overflow-wrap:anywhere}
+.ent .d{font-size:.78rem;color:var(--muted);white-space:nowrap;font-family:var(--mono)}
+.ent .k{font-family:var(--mono);font-size:.9rem}
+.ent .p{font-size:.82rem;color:var(--muted)}
+.ent .p .debt{color:var(--bad);font-weight:600}
+.ent.cnt{background:var(--tint);border-style:dashed}
+.ent .acts{margin-top:2px}
+.cgrp h3{margin:12px 0 2px;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.crow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.crow .l{display:flex;flex-direction:column;min-width:0}
+.crow small{font-size:.76rem;color:var(--muted)}
+.crow input{width:100px;flex:none;text-align:right;font-family:var(--mono)}
+.ship{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.ship.due{border-left-color:var(--bad)}
+.ship .sh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ship .sh .d{font-family:var(--mono);font-weight:700;font-size:.9rem;padding-top:3px}
+.ship .tt{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.ship .tt b{font-family:var(--mono);font-size:1.15rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ship .tt small{font-size:.75rem;color:var(--muted)}
+.ship .its{gap:6px}
+.ship .its li{flex-wrap:nowrap;align-items:flex-start;border-top:1px solid var(--line);padding-top:6px}
+.ship .its li>span{display:flex;flex-direction:column;min-width:0}
+.ship .its li>span:first-child b{font-weight:600;overflow-wrap:anywhere}
+.ship .its li>span:last-child{align-items:flex-end;text-align:right;color:var(--ink);font-size:.86rem}
+.ship .its small{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.pays{background:var(--tint);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;font-size:.86rem}
+.pay{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
+.pay span{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.pay b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ok)}
+.pay button{padding:4px 10px;font-size:.78rem}
+.pay small{grid-column:1/-1;font-size:.8rem;color:var(--muted);overflow-wrap:anywhere;margin-top:-2px}
+.pst{font-weight:600;color:var(--ok)}
+.ship.due .pst{color:var(--ink)}
+.ship .debt{color:var(--bad)}
+.payf{border:1px solid var(--ok);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.ship .xc{display:flex;flex-direction:column;font-size:.84rem;color:var(--ink)}
+.ship .xc small{font-size:.74rem;color:var(--muted)}
+.ship .dep{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ship .dep .xc{flex:1 1 160px}
+.ship .dep:not(.back) .xc small:last-child{color:var(--warn)}
+.ship .dep input[type=date]{width:auto;padding:5px 8px;font-size:.82rem}
+.ship .dep button{padding:5px 12px;font-size:.82rem}
+/* toptancı sayfası */
+.ship .sh .d small.sup{display:block;font-family:inherit;font-weight:600;font-size:.78rem;color:var(--accent)}
+.suph{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.suph h2{font-size:1.25rem}
+.suph button{padding:7px 12px;font-size:.85rem}
+.card h2{display:flex;align-items:center;gap:6px}
+.cat h3{margin:4px 0 2px;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.catr{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.catr span{font-weight:600;flex:1;min-width:0;overflow-wrap:anywhere}
+.catr small{font-size:.76rem;color:var(--muted);white-space:nowrap}
+.catr button,.palr button{padding:5px 12px;font-size:.8rem}
+.palr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,9em) auto;gap:8px;align-items:center}
+.palr .pr input{text-align:right}
+.ret{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:4px}
+.ret .sh{display:flex;justify-content:space-between;gap:8px}
+.ret .d{font-family:var(--mono);font-weight:700;font-size:.85rem}
+.ret b{font-family:var(--mono);color:var(--ok)}
+.ret small{font-size:.8rem;color:var(--muted)}
+.retf{border-color:var(--ok)}
+
+/* masaüstü */
+@media (min-width:1000px){
+  #stAll>.grid2,#stSup>.grid2{max-width:560px}
+  #recent,#stSup .ships{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px;align-items:start}
+  #brands{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
+}

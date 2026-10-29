@@ -5,220 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b6e8a">
 <title>Boran Stok</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/satis.css">
+<link rel="stylesheet" href="css/kayitlar.css">
+<link rel="stylesheet" href="css/stok.css">
+<link rel="stylesheet" href="css/giris.css">
+<link rel="stylesheet" href="css/gider.css">
+<link rel="stylesheet" href="css/yedek.css">
 </head>
 <body>
+<!-- Sayfalar ve pencereler kendi js dosyalarında; yüklenirken buraya eklenir -->
 <div class="wrap">
-
-  <!-- ===== SATIŞ ===== -->
-  <section class="page split" id="p-satis">
-    <header class="top"><h1>Satış</h1><span class="hint" id="vDay"></span></header>
-    <div class="sform" id="sForm">
-      <div class="editbar" id="sEditBar" hidden><span id="sEditTxt"></span><button type="button" id="sCancel">Vazgeç</button></div>
-      <div class="list" id="sBrands"></div>
-      <div class="seg" id="sPay">
-        <button type="button" data-pay="nakit" aria-pressed="true">Nakit</button>
-        <button type="button" data-pay="havale" aria-pressed="false">Havale</button>
-      </div>
-      <label class="f">Ödenen tutar (₺)<input id="sPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa tamamı"></label>
-      <div class="grid2">
-        <label class="f"><span id="sDateL">Tarih</span><input type="date" id="sDate"></label>
-        <label class="f">Saat<input type="time" id="sTime"></label>
-      </div>
-      <label class="f">Not<textarea id="sNote" rows="2" placeholder="ör. Parasını sonra verecek"></textarea></label>
-      <p class="err" id="sErr" role="alert"></p>
-      <div class="savebar"><span class="tot" id="sTot">0 ₺</span><button type="button" class="primary" id="sSave">Kaydet</button></div>
-    </div>
-
-    <div class="col">
-    <div class="daynav">
-      <button type="button" id="dPrev" aria-label="Önceki gün">‹</button>
-      <input type="date" id="vDate" aria-label="Gösterilen gün">
-      <button type="button" id="dNext" aria-label="Sonraki gün">›</button>
-    </div>
-    <div class="dsum" id="dSum"></div>
-    <div class="list" id="sList"></div>
-    </div>
-  </section>
-
-  <!-- ===== KAYITLAR ===== -->
-  <section class="page" id="p-kayit" hidden>
-    <header class="top"><h1>Kayıtlar</h1><span class="hint" id="rPerTxt"></span></header>
-    <div class="chips" id="rPer">
-      <button type="button" data-per="bugun" aria-pressed="false">Bugün</button>
-      <button type="button" data-per="7" aria-pressed="false">Son 7 gün</button>
-      <button type="button" data-per="ay" aria-pressed="true">Bu ay</button>
-      <button type="button" data-per="gecen" aria-pressed="false">Geçen ay</button>
-      <button type="button" data-per="tum" aria-pressed="false">Tümü</button>
-    </div>
-    <div class="kpis" id="rKpis"></div>
-    <h2>Stok durumu <small class="hint">(şu an)</small></h2>
-    <div class="tbl" id="rProd"></div>
-    <h2>Genel durum <small class="hint">(tüm zamanlar)</small></h2>
-    <div class="kpis" id="rGen"></div>
-    <h2>Satışlar</h2>
-    <input type="search" id="rQ" autocomplete="off" placeholder="Ara: ürün, not, tarih (ör. serinyol, 19.09)">
-    <div class="chips" id="rPay">
-      <button type="button" data-rpay="" aria-pressed="true">Hepsi</button>
-      <button type="button" data-rpay="borclu" aria-pressed="false">Borçlu</button>
-      <button type="button" data-rpay="nakit" aria-pressed="false">Nakit</button>
-      <button type="button" data-rpay="havale" aria-pressed="false">Havale</button>
-      <button type="button" id="rRefresh" class="refresh" title="Ödendi işaretlenenleri listeden düşür">↻ Yenile</button>
-    </div>
-    <p class="hint" id="rCount"></p>
-    <div class="tbl sum" id="rSum" hidden></div>
-    <div class="list" id="rList"></div>
-    <button type="button" id="rMore" hidden>Daha fazla göster</button>
-  </section>
-
-  <!-- ===== STOK ===== -->
-  <section class="page" id="p-stok" hidden>
-    <header class="top"><h1>Stok</h1></header>
-    <div class="kpis" id="kpis"></div>
-    <div class="grid2">
-      <button type="button" class="primary addbtn" id="btnAdd">+ Ürün girişi</button>
-      <button type="button" class="addbtn" id="btnCount">Sayım gir</button>
-    </div>
-    <div class="list" id="brands"></div>
-    <h2>Son girişler</h2>
-    <div class="list" id="recent"></div>
-    <button type="button" id="recentMore" hidden>Daha fazla göster</button>
-  </section>
-
-  <!-- ===== GELİR-GİDER ===== -->
-  <section class="page split" id="p-gider" hidden>
-    <header class="top"><h1>Gelir-Gider</h1><span class="hint" id="cPerTxt"></span></header>
-    <div class="sform" id="cForm">
-      <div class="editbar" id="cEditBar" hidden><span id="cEditTxt"></span><button type="button" id="cCancel">Vazgeç</button></div>
-      <div class="grid2">
-        <label class="f"><span id="cDateL">Tarih</span><input type="date" id="cDate"></label>
-        <label class="f">Saat<input type="time" id="cTime"></label>
-      </div>
-      <label class="f">Açıklama<input id="cDesc" autocomplete="off" placeholder="ör. Mazot, kira, babam sattı"></label>
-      <label class="f">Not<textarea id="cNote" rows="2" placeholder="ör. Fatura kesilecek"></textarea></label>
-      <label class="f">Tutar (₺)<input id="cAmt" inputmode="decimal" autocomplete="off" placeholder="ör. 1500"></label>
-      <p class="err" id="cErr" role="alert"></p>
-      <div class="savebar gb">
-        <button type="button" class="bgider" id="cGider">Gider kaydet</button>
-        <button type="button" class="bgelir" id="cGelir">Gelir kaydet</button>
-      </div>
-    </div>
-
-    <div class="col">
-    <div class="chips" id="cPer">
-      <button type="button" data-per="bugun" aria-pressed="false">Bugün</button>
-      <button type="button" data-per="7" aria-pressed="false">Son 7 gün</button>
-      <button type="button" data-per="ay" aria-pressed="true">Bu ay</button>
-      <button type="button" data-per="gecen" aria-pressed="false">Geçen ay</button>
-      <button type="button" data-per="tum" aria-pressed="false">Tümü</button>
-    </div>
-    <div class="kpis" id="cKpis"></div>
-    <div class="list" id="cList"></div>
-    <button type="button" id="cMore" hidden>Daha fazla göster</button>
-    </div>
-  </section>
-
-  <!-- ===== YEDEK ===== -->
-  <section class="page" id="p-yedek" hidden>
-    <header class="top"><h1>Yedek</h1></header>
-    <p class="hint">Kayıtlar sadece bu tarayıcının hafızasında durur. Tarayıcı verisini silersen veya telefon değiştirirsen kaybolur; ara ara dışa aktar.</p>
-    <div class="card">
-      <h2>Dışa aktar</h2>
-      <p class="hint" id="lastBackup"></p>
-      <div class="row">
-        <button type="button" class="primary grow" id="expDl">Dosya indir</button>
-        <button type="button" id="expShare" hidden>Paylaş</button>
-        <button type="button" id="expCopy">Kopyala</button>
-      </div>
-      <textarea id="expOut" readonly spellcheck="false"></textarea>
-    </div>
-    <div class="card">
-      <h2>İçe aktar</h2>
-      <p class="hint">Daha önce aldığın .txt yedeğini seç ya da metnini aşağıya yapıştır.</p>
-      <input type="file" id="impFile" accept=".txt,text/plain">
-      <textarea id="impIn" rows="6" spellcheck="false" autocapitalize="off" placeholder="Yedek metnini buraya yapıştır"></textarea>
-      <button type="button" id="impRead">Oku</button>
-      <div class="res" id="impRes" hidden></div>
-      <div class="row" id="impActs" hidden>
-        <button type="button" class="primary grow" id="impMerge">Mevcutlara ekle</button>
-        <button type="button" class="danger" id="impReplace">Hepsini değiştir</button>
-      </div>
-    </div>
-  </section>
+  <div class="acct">
+    <label for="acSel">Şube</label>
+    <select id="acSel"></select>
+    <button type="button" id="acEdit">Şubeler</button>
+  </div>
 </div>
-
-<!-- giriş formu -->
-<dialog id="dlgEntry" aria-labelledby="entT"><div class="sheet">
-  <header><h2 id="entT">Ürün girişi</h2><button type="button" data-close>Kapat</button></header>
-  <label class="f">Tarih<input type="date" id="fDate"></label>
-  <div class="list" id="fLines"></div>
-  <button type="button" id="fAddLine">+ Başka ürün ekle</button>
-  <div class="fblk">
-    <div class="fh"><span>Boş palet</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Palet başı ya da toplamı yazman yeter; diğeri çeşitlerdeki palet sayısından hesaplanır. Bu para paletler geri verilince iade edilir, maliyete eklenmez. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir (toptancıya ödenir); değilse giriş günü ayrıca ödenmiş sayılır.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
-    <div class="grid3">
-      <div class="f ro"><span>Palet sayısı</span><output id="fPalN">—</output></div>
-      <label class="f">Palet başı (₺)<input id="fDepPer" inputmode="decimal" autocomplete="off" placeholder="ör. 250"></label>
-      <label class="f">Toplam (₺)<input id="fDepTot" inputmode="decimal" autocomplete="off" placeholder="ör. 1.500"></label>
-    </div>
-  </div>
-  <div class="fblk">
-    <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür; değilse giriş günü ayrıca ödenmiş sayılır ve toptancı borcuna eklenmez.</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
-    <input id="fNak" inputmode="decimal" autocomplete="off" placeholder="Boşsa nakliye yok" aria-label="Nakliye">
-  </div>
-  <div class="fblk">
-    <div class="fh"><span>Ek giderler</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Hammaliye, yükleme gibi giderler. Nakliye gibi koli sayısına göre maliyete eklenir. <b>İçinde</b> işaretliyse toplam fiyata dahildir; değilse giriş günü ayrıca ödenmiş sayılır.</span></span></div>
-    <div class="list" id="fCosts"></div>
-    <button type="button" id="fAddCost">+ Ek gider ekle (hammaliye, yükleme…)</button>
-  </div>
-  <div class="fblk">
-    <div class="fh"><span>Girişin toplam fiyatı (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının verdiği tek fiyat. İçinde işaretli boş palet, nakliye ve ek giderler önce düşülür; kalan mal bedeli, fiyatı boş bırakılan çeşitlere koli sayısına göre paylaştırılır (hepsinde koli başı aynı olur). Boş bırakırsan çeşit fiyatları toplanır, işaretli giderler toptancı borcuna ayrıca eklenir.</span></span></div>
-    <input id="fTotal" inputmode="decimal" autocomplete="off" placeholder="Toptancı tek fiyat verdiyse" aria-label="Girişin toplam fiyatı">
-  </div>
-  <div class="fblk" id="fPaidL">
-    <div class="fh"><span>Şimdi ödediğim (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancıya bu girişte ödediğin. Kalanı giriş kartında borç olarak görünür, sonra “Ödeme yap” ile kapatırsın.</span></span></div>
-    <input id="fPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa ödenmedi" aria-label="Şimdi ödediğim">
-  </div>
-  <label class="f">Not<textarea id="fNote" rows="2" placeholder="ör. Toptancı, fatura no"></textarea></label>
-  <div class="calc" id="fCalc" aria-live="polite"></div>
-  <p class="err" id="fErr" role="alert"></p>
-  <div class="row">
-    <button type="button" class="primary grow" id="fSave">Kaydet</button>
-    <button type="button" class="danger" id="fDel" hidden>Sil</button>
-  </div>
-</div></dialog>
-
-<!-- ürün detayı -->
-<dialog id="dlgProd" aria-labelledby="prT"><div class="sheet">
-  <header><h2 id="prT"></h2><button type="button" data-close>Kapat</button></header>
-  <div><div class="big" id="prQty"></div><p class="hint" id="prMeta"></p></div>
-  <div class="row">
-    <button type="button" class="primary grow" id="prAdd">Bu üründen giriş ekle</button>
-    <button type="button" id="prCnt">Sayım yap</button>
-    <button type="button" id="prRen">Adı düzelt</button>
-  </div>
-  <div class="card" id="prRenBox" hidden>
-    <div class="grid2">
-      <label class="f">Marka<input id="rnBrand" autocomplete="off"></label>
-      <label class="f">Çeşit<input id="rnVar" autocomplete="off"></label>
-    </div>
-    <p class="hint" id="rnHint"></p>
-    <button type="button" class="primary" id="rnSave">Adı kaydet</button>
-  </div>
-  <h2>Girişler ve sayımlar</h2>
-  <div class="list" id="prList"></div>
-</div></dialog>
-
-<!-- sayım -->
-<dialog id="dlgCount" aria-labelledby="cntT"><div class="sheet">
-  <header><h2 id="cntT">Stok sayımı</h2><button type="button" data-close>Kapat</button></header>
-  <p class="hint">Elinde gerçekte kaç koli olduğunu say ve yaz. Stok bu sayıdan devam eder; önceki giriş ve satışlar kayıtlarda kalır ama stoğu artık etkilemez. Saymadığın ürünü boş bırak.</p>
-  <div id="cntList"></div>
-  <p class="err" id="cntErr" role="alert"></p>
-  <button type="button" class="primary" id="cntSave">Sayımı kaydet</button>
-</div></dialog>
-
-<datalist id="dlBrand"></datalist>
-<datalist id="dlVar"></datalist>
 
 <nav class="tabs"><div>
   <b class="logo">Boran Stok</b>
@@ -231,6 +34,18 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="app.js"></script>
+<script src="js/core.js"></script>
+<script src="js/store.js"></script>
+<script src="js/model.js"></script>
+<script src="js/satis.js"></script>
+<script src="js/kayitlar.js"></script>
+<script src="js/stok.js"></script>
+<script src="js/toptanci.js"></script>
+<script src="js/gider.js"></script>
+<script src="js/yedek.js"></script>
+<script src="js/giris.js"></script>
+<script src="js/urun.js"></script>
+<script src="js/sube.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

@@ -2,6 +2,17 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 13:40 — Branch `subeler-toptancilar`: dosyalara bölme, şubeler, toptancılar, palet çeşitleri
+- Önceki iş (12:10 kaydı) bu branch'in ilk commit'i olarak kaydedildi.
+- **Dosyalara bölündü:** `app.js` ve `style.css` silindi. `js/`: core (yardımcılar, `mountPage`/`mountDialog`), store (localStorage, şubeler), model (ürün/giriş/stok/toptancı hesapları), satis, kayitlar, stok, toptanci, gider, yedek, giris, urun, sube, app (geçiş + başlatma). Her sayfanın ve pencerenin HTML'i kendi dosyasında, yüklenirken `.wrap`/`body`'ye ekleniyor. `css/`: base + sayfa başına dosya. `.gitignore` klasörlere izin veriyor.
+- **Şubeler:** en üstte "Şube" seçimi + "Şubeler" penceresi (ekle, ad değiştir, aç, sil — açık şube silinemez). Her şubenin db'si ayrı anahtarda (`acctKey`); mevcut veri "Şube 1" (`boran.v1`) olarak kaldı. Son yedek tarihi şubeye özel (`ameta`). Şube değişince formlar ve seçimler sıfırlanıyor (`switchAcct`).
+- **Toptancılar:** `db.sups = [{id, name, note, pids, pals: [{id,name,price}], rets}]`, girişte `s.sup`. Stok sayfasında üstte "Tümü | toptancılar | + Toptancı". Tümü: eski görünüm + Toptancılar tablosu (giriş, borç, palet parası). Toptancı sayfası (`toptanci.js`): borç/alım/palet KPI'ları, + Ürün girişi, Boş palet iade, ürün listesi (ekle/çıkar), palet çeşitleri (ad/fiyat kutuda değişince kaydedilir), palet hesabı tablosu (alınan/iade/bende), iadeler, girişleri.
+- **Giriş formu:** Toptancı seçimi (seç / toptancılar / Toptancısız / + Yeni toptancı; seçmeden kaydedilmez). Toptancının listesi varsa marka ve çeşit açılır listeden seçiliyor, "+ Yeni …" ile yazılabiliyor; listede olmayan ürün kaydedince toptancının listesine ekleniyor. Boş palet: toptancının palet çeşitleri satır satır (palet başı + adet; tek çeşitte adet boşsa çeşitlerdeki palet sayısı), "+ Palet çeşidi ekle" ile elle çeşit, kaydedince toptancıya ekleniyor. `s.depLines = [{pal,name,price,n}]`. Çeşit yoksa eski palet başı/toplam kutuları.
+- **Palet iadesi:** toptancılı girişlerde iade girişten değil toptancının palet hesabından (`palLedger`, `rets`). Kayıtlar'da kasa hareketine iade tarihinde ekleniyor; "İadesi beklenen palet parası" `depWaiting()`. Toptancısız eski girişlerde "İade edildi" butonu aynen duruyor.
+- Sadece toptancı listesinde duran (girişi/satışı/sayımı olmayan) ürünler satışta, stok listesinde ve sayımda görünmüyor (`brands(true)`, `inUse`); `tidy` onları silmiyor.
+- **Yedek:** başa `Şube: ad`; `== TOPTANCILAR ==` (`[toptancı]`, `ürün Marka / Çeşit`, `palet Ad 250 tl`), girişte `toptancı Ad` ve `palet Ad 3 x 250 tl`, `== PALET İADELERİ ==` (`[palet iade]`, `toptancı`, `palet …`, `tutar X tl`). İçe aktarma bunları okuyor, başka şubenin yedeğiyse uyarıyor; dosya adı şube adını içeriyor.
+- jsdom ile 38 adımlık uçtan uca deneme geçti (eski veri, toptancı, giriş, iade, düzenleme, yedek yaz-oku-tekrar oku, şube geçişi, satış). Tarayıcıda görsel kontrol yapılamadı.
+
 ## 2026-10-29 12:10 — Giriş formu: "toplamın içinde" işaretleri, i ipuçları, kırmızı uyarı, binlik nokta
 - Sıra: ürünler → Boş palet → Nakliye → Ek giderler → Girişin toplam fiyatı → Şimdi ödediğim → Not. Her blok `.fblk` + başlık `.fh`.
 - Boş palet, Nakliye ve her ek gider satırında "toplam fiyatın içinde" kutusu (`#fDepIn` varsayılan işaretli, `#fNakIn`, ek giderde `inc`). İşaretliyse tutar girişin toplam fiyatından düşülür, kalan mal bedeli paylaştırılır (`readForm`: `inSum`, `goods`). Toplam fiyat boşsa işaretliler çeşit fiyatlarının üstüne toptancı borcuna eklenir.

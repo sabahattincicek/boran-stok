@@ -1,8 +1,10 @@
 # Sadece uygulama yayınlanır; eski defter ve yedekler kişisel veri içerir
 *
 !index.html
-!style.css
-!app.js
+!css/
+!css/*.css
+!js/
+!js/*.js
 !.gitignore
 !CLAUDE.md
 !devlog.md

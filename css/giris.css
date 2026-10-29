@@ -1,0 +1,14 @@
+/* Ürün girişi penceresi */
+.eline{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.xrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end}
+.xrow>label.f:first-child{grid-column:1/-1}
+@media (min-width:600px){.xrow{grid-template-columns:minmax(0,1fr) minmax(0,8em) auto auto}.xrow>label.f:first-child{grid-column:auto}}
+.xrow .inc{min-height:46px}
+.xrow button{padding:8px 12px;font-size:.8rem}
+.elh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.85rem}
+.elh button{padding:5px 12px;font-size:.8rem}
+#fAddLine{border-style:dashed;font-weight:600;color:var(--accent)}
+
+/* boş palet çeşitleri */
+.prow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr) auto;gap:8px;align-items:end}
+.prow button{padding:0 12px;min-height:46px;font-size:1.1rem}

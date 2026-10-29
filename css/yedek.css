@@ -1,0 +1,9 @@
+/* Yedek sayfası */
+#expOut,#impIn{font-family:var(--mono);font-size:.82rem;line-height:1.4}
+#expOut{height:220px}
+.res{border-radius:10px;padding:10px 12px;font-size:.88rem;background:var(--tint)}
+/* masaüstü */
+@media (min-width:1000px){
+  #p-yedek{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  #p-yedek>header,#p-yedek>.hint{grid-column:1/-1}
+}

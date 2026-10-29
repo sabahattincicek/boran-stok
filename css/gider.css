@@ -1,0 +1,19 @@
+/* Gelir-Gider sayfası */
+.cash{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.cash.out{border-left-color:var(--bad)}
+.cash.editing{outline:3px solid var(--accent);outline-offset:2px}
+.cash .sh{display:flex;align-items:baseline;gap:10px}
+.cash .tm{font-family:var(--mono);font-weight:700}
+.cash .k{font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ok)}
+.cash.out .k{color:var(--bad)}
+.cash .sh b{margin-left:auto;font-family:var(--mono);font-size:1.05rem;color:var(--ok);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cash.out .sh b{color:var(--bad)}
+.cash .ds{font-weight:600;overflow-wrap:anywhere}
+.savebar.gb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.savebar.gb button{padding:14px 8px;font-weight:700;color:var(--surface)}
+.bgider{background:var(--bad);border-color:var(--bad)}
+.bgelir{background:var(--ok);border-color:var(--ok)}
+/* masaüstü */
+@media (min-width:1000px){
+  #cForm{position:sticky;top:20px}
+}
