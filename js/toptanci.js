@@ -27,7 +27,7 @@ function renderSupPanel(t) {
     + kpi('Bendeki boş palet', fmt(bende) + ' palet', 'palet parası ' + money(L.out) + ' · geri alınan ' + money(L.back))
     + kpi('Palet parası alacağım', sm(L.claim), 'verdiğim paletlerin parası ' + money(L.given), L.claim > 0.004 ? 'warn' : '')
     + '</div>';
-  h += '<div class="grid2 supacts">'
+  h += '<div class="supacts">'
     + '<button type="button" class="primary addbtn" data-supentry>+ Ürün girişi</button>'
     + '<button type="button" class="paidbtn addbtn" data-sd="odeme">Ödeme yap</button>'
     + '<button type="button" class="addbtn" data-sd="ver">Boş palet verdim</button>'
@@ -106,14 +106,31 @@ var SD = {
   palet: { t: 'Boş palet çeşidi', save: 'Kaydet' },
   odeme: { t: 'Ödeme yap', save: 'Ödemeyi kaydet' },
   ver: { t: 'Boş palet verdim', save: 'Kaydet' },
-  iade: { t: 'Palet parası aldım', save: 'Kaydet' }
+  iade: { t: 'Palet parası aldım', save: 'Kaydet' },
+  yeni: { t: 'Yeni toptancı', save: 'Toptancıyı ekle' },
+  shpay: { t: 'Girişe ödeme', save: 'Ödemeyi kaydet' },
+  depback: { t: 'Palet parası iade edildi', save: 'İade edildi' }
 };
 function dateF(id) { return '<label class="f">Tarih<input type="date" id="' + id + '" value="' + today() + '"></label>'; }
+// yeni toptancı ve toptancısız girişin ödemesi/palet iadesi seçili toptancı olmadan da açılır
 function openSd(mode, ref) {
-  var t = supOf(stSup); if (!t) return;
+  var t = supOf(stSup), free = mode === 'yeni' || mode === 'shpay' || mode === 'depback';
+  if (!t && !free) return;
   sdMode = mode; sdRef = ref || null;
-  var A = supAccount(t), L = palLedger(t), b = '', hint = '', del = false, title = SD[mode].t;
-  if (mode === 'bilgi') {
+  var A = t ? supAccount(t) : null, L = t ? palLedger(t) : null, b = '', hint = '', del = false, title = SD[mode].t, s = ref && byId(db.ships, ref);
+  if (mode === 'yeni') {
+    b = '<label class="f">Toptancı / firma adı<input id="sdName" autocomplete="off" placeholder="ör. Yıldız Toptan"></label>';
+    hint = 'Eklendikten sonra ürünlerini ve palet çeşitlerini toptancının sayfasından eklersin.';
+  } else if (mode === 'shpay') {
+    var rem = shipTotal(s) - shipPaid(s);
+    title = dateTR(s.date) + ' girişine ödeme';
+    b = '<label class="f">Ödenen tutar (₺)<input id="sdAmt" inputmode="decimal" autocomplete="off" placeholder="kalan ' + gnum(amt(rem)) + '"></label>'
+      + dateF('sdDate') + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="ör. Havale ile, elden verdim"></label>';
+    hint = 'Toptancısız giriş; kalan borç ' + money(rem) + '.';
+  } else if (mode === 'depback') {
+    b = dateF('sdDate');
+    hint = dateTR(s.date) + ' girişinin boş palet parası ' + money(s.dep) + ' geri alındı olarak işaretlenecek.';
+  } else if (mode === 'bilgi') {
     b = '<label class="f">Toptancı / firma adı<input id="sdName" autocomplete="off" value="' + esc(t.name) + '"></label>'
       + '<label class="f">Not<input id="sdNote" autocomplete="off" value="' + esc(t.note || '') + '" placeholder="ör. telefon, plasiyer"></label>';
     del = true;
@@ -135,10 +152,12 @@ function openSd(mode, ref) {
   } else if (mode === 'ver') {
     b = t.pals.length ? t.pals.map(function (p) {
       var r = L.rows.filter(function (x) { return x.name === p.name; })[0], o = r ? r.out - r.giv : 0;
-      return '<label class="f">' + esc(p.name) + ' (adet)<input data-give="' + p.id + '" inputmode="decimal" autocomplete="off" placeholder="' + (o > 0 ? 'bende ' + fmt(o) : 'ör. 5') + '"></label>';
+      return '<div class="givr" data-has="' + o + '"><b>' + esc(p.name) + ' <small>· şu an bende ' + fmt(o) + '</small></b><div class="grid2">'
+        + '<label class="f">Verdim (adet)<input data-give="' + p.id + '" inputmode="decimal" autocomplete="off" placeholder="ör. 5"></label>'
+        + '<label class="f">Bende kalan (adet)<input data-left inputmode="decimal" autocomplete="off" placeholder="' + fmt(o) + '"></label></div></div>';
     }).join('') + dateF('sdDate') + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="ör. şoföre verdim"></label>'
       : '<p class="hint">Önce "Boş palet çeşitleri"nden palet çeşidi ekle.</p>';
-    hint = 'Sadece paletleri yazarsın; parasını geri aldığında "Palet parası aldım" ile ayrıca girersin.';
+    hint = 'Verdiğini ya da bende kalanı yazman yeter, diğeri hesaplanır. Parasını geri aldığında "Palet parası aldım" ile ayrıca girersin.';
   } else if (mode === 'iade') {
     b = '<label class="f">Geri aldığım para (₺)<input id="sdAmt" inputmode="decimal" autocomplete="off" placeholder="' + (L.claim > 0.004 ? 'alacağım ' + gnum(amt(L.claim)) : 'ör. 1.250') + '"></label>'
       + dateF('sdDate') + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="ör. 2 palet kırık, eksik ödedi"></label>';
@@ -153,9 +172,28 @@ function openSd(mode, ref) {
 }
 function sdErr(m) { $('sdErr').textContent = m; }
 function saveSd() {
-  var t = supOf(stSup); if (!t) return;
-  var m = sdMode, msg = '';
-  if (m === 'bilgi') {
+  var t = supOf(stSup), m = sdMode, msg = '', s = sdRef && byId(db.ships, sdRef);
+  if (!t && m !== 'yeni' && m !== 'shpay' && m !== 'depback') return;
+  if (m === 'yeni') {
+    var nn = clean($('sdName').value);
+    if (!nn) return sdErr('Toptancının adını yaz.');
+    if (findSup(nn)) return sdErr(findSup(nn).name + ' zaten var.');
+    var nt = ensureSup(nn);
+    if (!persist()) return;
+    $('dlgSup').close(); pickSup(nt.id); toast(nt.name + ' eklendi. Ürünlerini ve palet çeşitlerini ekleyebilirsin.');
+    return;
+  } else if (m === 'shpay') {
+    var r0 = $('sdAmt').value.trim(), a0 = num(r0), d0 = $('sdDate').value, rem0 = shipTotal(s) - shipPaid(s);
+    if (!r0) return sdErr('Ödediğin tutarı yaz.');
+    if (a0 == null || a0 <= 0) return sdErr('Tutarı sayı olarak yaz, ör. 5000.');
+    if (a0 > rem0 + 0.004) return sdErr('Kalan borçtan (' + money(rem0) + ') fazla olamaz.');
+    if (!d0) return sdErr('Ödeme tarihini seç.');
+    s.pays.push({ id: 'o' + uid(), ts: Date.now(), date: d0, amount: a0, note: clean($('sdNote').value) });
+    msg = money(a0) + ' ödeme kaydedildi · ' + (rem0 - a0 > 0.004 ? 'kalan ' + money(rem0 - a0) : 'tamamı ödendi');
+  } else if (m === 'depback') {
+    s.depBack = $('sdDate').value || today();
+    msg = 'Palet parası iade edildi: ' + money(s.dep);
+  } else if (m === 'bilgi') {
     var name = clean($('sdName').value), o = findSup(name);
     if (!name) return sdErr('Toptancının adını yaz.');
     if (o && o !== t) return sdErr(o.name + ' adında başka bir toptancı var.');
@@ -188,9 +226,11 @@ function saveSd() {
   } else if (m === 'ver') {
     var lines = [], err = '', dv = $('sdDate').value;
     document.querySelectorAll('#sdBody [data-give]').forEach(function (x) {
-      var r = x.value.trim(), n = num(r), pl = byId(t.pals, x.dataset.give);
+      var r = x.value.trim() || (x.placeholder.charAt(0) === '=' ? x.placeholder.slice(1).trim() : ''), n = num(r), pl = byId(t.pals, x.dataset.give);
       if (!r || !pl) return;
-      if (n == null || n <= 0) { err = err || pl.name + ' için adedi sayı olarak yaz.'; return; }
+      if (n === 0) return; // bende kalan, bendekine eşit: bu çeşitten verilmedi
+      if (/^[-−]/.test(r)) { err = err || pl.name + ': bende kalan, bendekinden fazla olamaz.'; return; }
+      if (n == null) { err = err || pl.name + ' için adedi sayı olarak yaz.'; return; }
       lines.push({ pal: pl.id, name: pl.name, n: n });
     });
     if (err) return sdErr(err);
@@ -239,7 +279,16 @@ $('stSup').addEventListener('click', function (ev) {
 });
 $('sdSave').addEventListener('click', saveSd);
 $('sdDel').addEventListener('click', function () { arm(this, deleteSd); });
-$('sdBody').addEventListener('input', function () { $('sdErr').textContent = ''; });
+$('sdBody').addEventListener('input', function (ev) {
+  $('sdErr').textContent = '';
+  // palet verdim: verdim ↔ bende kalan; yazılmayan kutuda hesaplanan "= …" görünür
+  var row = ev.target.closest('.givr'); if (!row) return;
+  var has = +row.dataset.has, g = row.querySelector('[data-give]'), l = row.querySelector('[data-left]');
+  var other = ev.target === g ? l : g, v = num(ev.target.value);
+  other.value = '';
+  other.placeholder = ev.target.value.trim() && v != null ? '= ' + fmt(Math.round((has - v) * 100) / 100) : other === l ? fmt(has) : 'ör. 5';
+  other.classList.toggle('bad', ev.target.value.trim() !== '' && v != null && has - v < 0 && other === l);
+});
 $('sdBody').addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target.tagName === 'INPUT') saveSd(); });
 // çeşit önerileri yazılan markaya göre
 $('sdBody').addEventListener('focusin', function (ev) { if (ev.target.id === 'sdVar') fillDatalists($('sdBrand').value); else if (ev.target.id === 'sdBrand') fillDatalists(); });

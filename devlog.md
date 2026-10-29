@@ -2,6 +2,14 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 15:05 — Her ekleme/düzeltme pencereden; listeler tek sütun; palet verdimde "bende kalan"
+- Kural (kullanıcı): her ekleme ve düzeltme pencere (dialog) ile yapılır; dinamik listeler tek sütun, tam genişlik.
+- Stok sayfasında kalan satır içi formlar pencereye taşındı (`dlgSup`, yeni modlar): "+ Toptancı" (`yeni`), toptancısız girişe "Ödeme yap" (`shpay`), toptancısız girişin palet parası "İade edildi" (`depback`, tarih pencerede). `stNew`, `payOpen`, `openPay`/`savePay`/`markDep` kalktı; geri alma `undoDep`.
+- Masaüstündeki ızgaralar kaldırıldı: Son girişler, toptancının girişleri ve stok (marka) listesi her satır tek sütun, tam genişlik.
+- Toptancı butonları (+ Ürün girişi, Ödeme yap, Boş palet verdim, Palet parası aldım) ve Tümü'deki (+ Ürün girişi, Sayım gir) `.supacts`: sığdığı kadar yan yana (masaüstünde tek satır, telefonda 2×2).
+- Boş palet verdim penceresi: her çeşitte "Verdim" ve "Bende kalan" kutuları; biri yazılınca diğeri "= …" olarak hesaplanıyor. Bende kalan bendekinden fazlaysa hata; 0 verilen çeşit atlanıyor.
+- jsdom denemesi 53 adım geçti.
+
 ## 2026-10-29 14:30 — Toptancı hesabı: ödemeler toplamdan, palet verme ve para iadesi ayrı, palet fiyatı girişte
 - **Toptancı hesabı:** toptancılı girişin tamamı (mal bedeli + nakliye + ek giderler + boş palet parası) toptancı hesabına borç yazılır (`shipDue`, `supAccount`). Ödemeler girişe bağlı değil, `t.pays`'te; toplamdan düşer. "Toplam fiyatın içinde" işaretleri sadece mal bedelinin hesabını etkiler. Giriş formundaki "Şimdi ödediğim" toptancı hesabına ödeme olarak yazılır (not: "giriş günü"); özette "Toptancı hesabına yazılacak" ve "önceki kalan → kalan" var.
 - Toptancılı giriş kartında ödeme/kalan yok; "Toptancı hesabına: mal bedeli + nakliye/ek gider + boş palet = X" satırı var. Toptancısız (eski) girişler eski usul: girişe ödeme, ayrı ödenen nakliye/palet giriş günü kasadan.
