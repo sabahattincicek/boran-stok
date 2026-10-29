@@ -152,6 +152,12 @@
   <label class="f">Tarih<input type="date" id="fDate"></label>
   <div class="list" id="fLines"></div>
   <button type="button" id="fAddLine">+ Başka ürün ekle</button>
+  <label class="f">Girişin toplam fiyatı (₺)<input id="fTotal" inputmode="decimal" autocomplete="off" placeholder="Toptancı tek fiyat verdiyse"></label>
+  <p class="hint">Toplamı yazarsan, fiyatı boş bırakılan çeşitlere kalan para koli sayısına göre paylaştırılır (hepsinde koli başı aynı olur).</p>
+  <label class="f">Nakliye (₺)<input id="fNak" inputmode="decimal" autocomplete="off" placeholder="Boşsa nakliye yok"></label>
+  <div class="list" id="fCosts"></div>
+  <button type="button" id="fAddCost">+ Ek gider ekle (hammaliye, yükleme…)</button>
+  <p class="hint">Nakliye ve ek giderler koli sayısına göre çeşitlerin maliyetine eklenir. Toptancı borcuna eklenmez, giriş günü ödenmiş sayılır.</p>
   <label class="f" id="fPaidL">Şimdi ödediğim (₺)<input id="fPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa ödenmedi"></label>
   <label class="f">Not<textarea id="fNote" rows="2" placeholder="ör. Toptancı, fatura no"></textarea></label>
   <div class="calc" id="fCalc" aria-live="polite"></div>
