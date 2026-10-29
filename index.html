@@ -153,13 +153,31 @@
   <label class="f">Tarih<input type="date" id="fDate"></label>
   <div class="list" id="fLines"></div>
   <button type="button" id="fAddLine">+ Başka ürün ekle</button>
-  <label class="f">Girişin toplam fiyatı (₺)<input id="fTotal" inputmode="decimal" autocomplete="off" placeholder="Toptancı tek fiyat verdiyse"></label>
-  <p class="hint">Toplamı yazarsan, fiyatı boş bırakılan çeşitlere kalan para koli sayısına göre paylaştırılır (hepsinde koli başı aynı olur).</p>
-  <label class="f">Nakliye (₺)<input id="fNak" inputmode="decimal" autocomplete="off" placeholder="Boşsa nakliye yok"></label>
-  <div class="list" id="fCosts"></div>
-  <button type="button" id="fAddCost">+ Ek gider ekle (hammaliye, yükleme…)</button>
-  <p class="hint">Nakliye ve ek giderler koli sayısına göre çeşitlerin maliyetine eklenir. Toptancı borcuna eklenmez, giriş günü ödenmiş sayılır.</p>
-  <label class="f" id="fPaidL">Şimdi ödediğim (₺)<input id="fPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa ödenmedi"></label>
+  <div class="fblk">
+    <div class="fh"><span>Boş palet</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Palet başı ya da toplamı yazman yeter; diğeri çeşitlerdeki palet sayısından hesaplanır. Bu para paletler geri verilince iade edilir, maliyete eklenmez. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir (toptancıya ödenir); değilse giriş günü ayrıca ödenmiş sayılır.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
+    <div class="grid3">
+      <div class="f ro"><span>Palet sayısı</span><output id="fPalN">—</output></div>
+      <label class="f">Palet başı (₺)<input id="fDepPer" inputmode="decimal" autocomplete="off" placeholder="ör. 250"></label>
+      <label class="f">Toplam (₺)<input id="fDepTot" inputmode="decimal" autocomplete="off" placeholder="ör. 1.500"></label>
+    </div>
+  </div>
+  <div class="fblk">
+    <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür; değilse giriş günü ayrıca ödenmiş sayılır ve toptancı borcuna eklenmez.</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
+    <input id="fNak" inputmode="decimal" autocomplete="off" placeholder="Boşsa nakliye yok" aria-label="Nakliye">
+  </div>
+  <div class="fblk">
+    <div class="fh"><span>Ek giderler</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Hammaliye, yükleme gibi giderler. Nakliye gibi koli sayısına göre maliyete eklenir. <b>İçinde</b> işaretliyse toplam fiyata dahildir; değilse giriş günü ayrıca ödenmiş sayılır.</span></span></div>
+    <div class="list" id="fCosts"></div>
+    <button type="button" id="fAddCost">+ Ek gider ekle (hammaliye, yükleme…)</button>
+  </div>
+  <div class="fblk">
+    <div class="fh"><span>Girişin toplam fiyatı (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının verdiği tek fiyat. İçinde işaretli boş palet, nakliye ve ek giderler önce düşülür; kalan mal bedeli, fiyatı boş bırakılan çeşitlere koli sayısına göre paylaştırılır (hepsinde koli başı aynı olur). Boş bırakırsan çeşit fiyatları toplanır, işaretli giderler toptancı borcuna ayrıca eklenir.</span></span></div>
+    <input id="fTotal" inputmode="decimal" autocomplete="off" placeholder="Toptancı tek fiyat verdiyse" aria-label="Girişin toplam fiyatı">
+  </div>
+  <div class="fblk" id="fPaidL">
+    <div class="fh"><span>Şimdi ödediğim (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancıya bu girişte ödediğin. Kalanı giriş kartında borç olarak görünür, sonra “Ödeme yap” ile kapatırsın.</span></span></div>
+    <input id="fPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa ödenmedi" aria-label="Şimdi ödediğim">
+  </div>
   <label class="f">Not<textarea id="fNote" rows="2" placeholder="ör. Toptancı, fatura no"></textarea></label>
   <div class="calc" id="fCalc" aria-live="polite"></div>
   <p class="err" id="fErr" role="alert"></p>

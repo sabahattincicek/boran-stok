@@ -2,6 +2,25 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 12:10 — Giriş formu: "toplamın içinde" işaretleri, i ipuçları, kırmızı uyarı, binlik nokta
+- Sıra: ürünler → Boş palet → Nakliye → Ek giderler → Girişin toplam fiyatı → Şimdi ödediğim → Not. Her blok `.fblk` + başlık `.fh`.
+- Boş palet, Nakliye ve her ek gider satırında "toplam fiyatın içinde" kutusu (`#fDepIn` varsayılan işaretli, `#fNakIn`, ek giderde `inc`). İşaretliyse tutar girişin toplam fiyatından düşülür, kalan mal bedeli paylaştırılır (`readForm`: `inSum`, `goods`). Toplam fiyat boşsa işaretliler çeşit fiyatlarının üstüne toptancı borcuna eklenir.
+- Veri: `s.nakIn`, `s.depIn`, `cost.inc`. `shipTotal` = mal bedeli + `shipIn` (toptancı borcu). Kayıtlar'da kasa hareketinden sadece ayrı ödenenler düşülüyor (`shipExtraOut`, palet `!depIn`). Nakliye/ek gider her durumda maliyette; palet hiç maliyette değil.
+- Boş palet bloğunda çeşitlerden hesaplanan toplam palet sayısı gösteriliyor (`#fPalN`).
+- Formdaki açıklama paragrafları kaldırıldı; başlıkların yanında "i" (`.info .tip`), fareyle üstüne gelince ya da tıklayınca açılıyor.
+- Hesap tutmayan ya da sayı olmayan kutular kırmızı (`input.bad`, `bad()`): koli/palette koli/palet çelişkisi, çeşit fiyatları ile toplam, palet başı ile toplam, içindekiler toplamdan fazla, ödenen borçtan fazla.
+- Formdaki sayı kutularında yazarken binlik nokta (`gnum`, dialog'da capture `input` dinleyicisi); nokta tuşu kuruş virgülü sayılıyor, yapıştırılan sayı düzeltiliyor.
+- Yedek: işaretli olanlara `(toplamda)` ekleniyor (`nakliye X tl (toplamda)`, `ek gider X tl (toplamda): …`, `boş palet X tl (toplamda) / iade …`); içe aktarma okuyup toplamdan düşerek paylaştırıyor; `shipSig` güncellendi.
+- Örnek veriyle Node'da denendi: 60.000 toplam, içinde 2.000 nakliye + 5×250 palet → mal bedeli 56.750, koliye göre 34.050 / 22.700; yedek yaz-oku aynı.
+
+## 2026-10-29 11:30 — Stok girişine boş palet parası (iade edilecek)
+- Giriş formuna yan yana "Boş palet, palet başı (₺)" (`#fDepPer`) ve "Boş palet, toplam (₺)" (`#fDepTot`). Biri yazılınca diğeri çeşitlerdeki palet sayısı toplamından hesaplanıp boş kutuda "= …" görünüyor (`readDep`, `palCount`). Palet sayısı yokken sadece palet başı yazılırsa ya da ikisi tutmazsa hata.
+- Girişte `s.dep` (toplam), `s.depPer` (palet başı, bilinmiyorsa null), `s.depPerIn` (palet başı mı yazıldı; düzenlemede o kutu dolu açılır), `s.depBack` (iade tarihi ya da null).
+- Maliyete ve toptancı borcuna girmiyor. Giriş günü ödenmiş sayılıyor: Kayıtlar'da Kasa hareketinden giriş tarihinde düşüyor, iade tarihinde geri ekleniyor.
+- Giriş kartında "Boş palet parası X (N palet × Y) · İade bekliyor" + tarih kutusu + "İade edildi" butonu; iade edilince tarih ve "Geri al" (`markDep`).
+- Kayıtlar > Genel durum'a "İadesi beklenen palet parası" kutusu (hiç palet parası yoksa görünmüyor).
+- Yedek: `boş palet X tl` ve iade edildiyse `boş palet X tl / iade GG.AA.YYYY`; içe aktarma okuyor, `shipSig`'e eklendi.
+
 ## 2026-10-29 11:05 — Kayıtlar: "Ürünlere göre satış" yerine Stok durumu; satış tablosuna Kâr
 - Kayıtlar'daki "Ürünlere göre satış" tablosu (`#rProd`) kaldırıldı, yerine "Stok durumu (şu an)" geldi: marka/çeşit başına Son sayım (koli · tarih) · Sonra giren · Sonra satılan · Şimdiki stok, Toplam satırıyla. Hesap `stockOf` ile aynı; sayım yoksa en baştan. Dönem seçiminden etkilenmiyor.
 - `renderRecords` içindeki ürün özeti (`prod`) artık kullanılmadığı için kaldırıldı.

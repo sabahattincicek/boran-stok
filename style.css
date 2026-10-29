@@ -106,10 +106,30 @@ h2{font-size:1.05rem;margin:0}
 .ship .debt{color:var(--bad)}
 .payf{border:1px solid var(--ok);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .eline{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
-.xrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,8em) auto;gap:8px;align-items:end}
+.xrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end}
+.xrow>label.f:first-child{grid-column:1/-1}
+@media (min-width:600px){.xrow{grid-template-columns:minmax(0,1fr) minmax(0,8em) auto auto}.xrow>label.f:first-child{grid-column:auto}}
+.xrow .inc{min-height:46px}
+.fblk{display:flex;flex-direction:column;gap:6px}
+.fh{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.fh .inc{margin-left:auto}
+.inc{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:var(--ink);cursor:pointer;white-space:nowrap}
+.inc input{width:17px;height:17px;padding:0;margin:0;accent-color:var(--accent)}
+.info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;flex:none;border-radius:50%;border:1px solid currentColor;font:italic 700 .68rem/1 Georgia,serif;color:var(--muted);cursor:help}
+.info:hover,.info:focus{color:var(--accent);outline:none}
+.info .tip{display:none;position:absolute;left:-8px;top:calc(100% + 6px);z-index:5;width:min(300px,78vw);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-style:normal;font-weight:400;font-size:.8rem;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.18);cursor:auto}
+.info:hover .tip,.info:focus .tip{display:block}
+.f.ro{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--muted);min-width:0}
+.f.ro output{display:flex;align-items:center;min-height:46px;padding:0 12px;border:1px dashed var(--line);border-radius:10px;font-family:var(--mono);font-size:1rem;color:var(--ink)}
+input.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
 .xrow button{padding:8px 12px;font-size:.8rem}
 .ship .xc{display:flex;flex-direction:column;font-size:.84rem;color:var(--ink)}
 .ship .xc small{font-size:.74rem;color:var(--muted)}
+.ship .dep{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ship .dep .xc{flex:1 1 160px}
+.ship .dep:not(.back) .xc small:last-child{color:var(--warn)}
+.ship .dep input[type=date]{width:auto;padding:5px 8px;font-size:.82rem}
+.ship .dep button{padding:5px 12px;font-size:.82rem}
 .elh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.85rem}
 .elh button{padding:5px 12px;font-size:.8rem}
 #fAddLine{border-style:dashed;font-weight:600;color:var(--accent)}
