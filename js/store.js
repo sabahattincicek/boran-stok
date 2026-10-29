@@ -54,6 +54,20 @@ function migrate() {
     if (e.paid > 0) s.pays.push({ id: 'o' + uid(), ts: e.ts, date: e.date, amount: e.paid });
     db.ships.push(s); e.sid = s.id; delete e.paid; delete e.note;
   });
+  // toptancı hesabı: ödemeler toptancıda; palet iadesi "verdim" ve "para iadesi" diye ayrı; palet fiyatı girişte
+  db.sups.forEach(function (t) {
+    ['pays', 'gives', 'refs'].forEach(function (k) { if (!t[k]) { t[k] = []; n++; } });
+    (t.rets || []).forEach(function (r) {
+      if (r.lines.length) t.gives.push({ id: 'v' + r.id, ts: r.ts, date: r.date, lines: r.lines.map(function (l) { return { pal: l.pal, name: l.name, n: l.n }; }), note: r.note });
+      if (r.amount > 0) t.refs.push({ id: 'i' + r.id, ts: r.ts, date: r.date, amount: r.amount, note: r.note });
+    });
+    if (t.rets) { delete t.rets; n++; }
+    t.pals.forEach(function (p) { if ('price' in p) { delete p.price; n++; } });
+  });
+  db.ships.forEach(function (s) {
+    var t = supOf(s.sup);
+    if (t && s.pays.length) { t.pays = t.pays.concat(s.pays); s.pays = []; n++; }
+  });
   if (n) persist();
 }
 function persist() {

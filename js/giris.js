@@ -12,7 +12,7 @@ mountDialog(`
   <div class="list" id="fLines"></div>
   <button type="button" id="fAddLine">+ Başka ürün ekle</button>
   <div class="fblk">
-    <div class="fh"><span>Boş palet</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının palet çeşitleri varsa her çeşidin adedini yaz; tek çeşit varsa adet çeşitlerdeki palet sayısından gelir. Yoksa palet başı ya da toplamı yazman yeter, diğeri palet sayısından hesaplanır. Bu para paletler geri verilince iade edilir, maliyete eklenmez. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir (toptancıya ödenir); değilse giriş günü ayrıca ödenmiş sayılır.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
+    <div class="fh"><span>Boş palet</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının palet çeşitleri satır satır gelir; bu alımdaki palet başı fiyatı ve adedi yaz (tek çeşitte adet boşsa çeşitlerdeki palet sayısı alınır). Çeşit yoksa palet başı ya da toplamı yazman yeter. Bu para paletler geri verilince iade edilir, maliyete eklenmez ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
     <div class="grid3" id="fDepOld">
       <div class="f ro"><span>Palet sayısı</span><output id="fPalN">—</output></div>
       <label class="f">Palet başı (₺)<input id="fDepPer" inputmode="decimal" autocomplete="off" placeholder="ör. 250"></label>
@@ -23,11 +23,11 @@ mountDialog(`
     <button type="button" class="dash" id="fAddPal">+ Palet çeşidi ekle</button>
   </div>
   <div class="fblk">
-    <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür; değilse giriş günü ayrıca ödenmiş sayılır ve toptancı borcuna eklenmez.</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
+    <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür. (Toptancısız girişte işaretli değilse giriş günü ayrıca ödenmiş sayılır.)</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
     <input id="fNak" inputmode="decimal" autocomplete="off" placeholder="Boşsa nakliye yok" aria-label="Nakliye">
   </div>
   <div class="fblk">
-    <div class="fh"><span>Ek giderler</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Hammaliye, yükleme gibi giderler. Nakliye gibi koli sayısına göre maliyete eklenir. <b>İçinde</b> işaretliyse toplam fiyata dahildir; değilse giriş günü ayrıca ödenmiş sayılır.</span></span></div>
+    <div class="fh"><span>Ek giderler</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Hammaliye, yükleme gibi giderler. Nakliye gibi koli sayısına göre maliyete eklenir ve toptancı hesabına yazılır. <b>İçinde</b> işaretliyse toplam fiyata dahildir.</span></span></div>
     <div class="list" id="fCosts"></div>
     <button type="button" id="fAddCost">+ Ek gider ekle (hammaliye, yükleme…)</button>
   </div>
@@ -36,7 +36,7 @@ mountDialog(`
     <input id="fTotal" inputmode="decimal" autocomplete="off" placeholder="Toptancı tek fiyat verdiyse" aria-label="Girişin toplam fiyatı">
   </div>
   <div class="fblk" id="fPaidL">
-    <div class="fh"><span>Şimdi ödediğim (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancıya bu girişte ödediğin. Kalanı giriş kartında borç olarak görünür, sonra “Ödeme yap” ile kapatırsın.</span></span></div>
+    <div class="fh"><span>Şimdi ödediğim (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancıya bu gün ödediğin. Toptancının hesabına ödeme olarak yazılır, hesabın toplamından düşer; sonraki ödemeleri toptancının sayfasından “Ödeme yap” ile girersin.</span></span></div>
     <input id="fPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa ödenmedi" aria-label="Şimdi ödediğim">
   </div>
   <label class="f">Not<textarea id="fNote" rows="2" placeholder="ör. Fatura no"></textarea></label>
@@ -72,7 +72,9 @@ function renderSupSel() {
 // palet çeşidi satırları: girişte yazılanlar + toptancının diğer çeşitleri (adedi boş)
 function palRowsOf(t, lines) {
   var out = (lines || []).map(function (l) { return { pal: l.pal || null, name: l.name, price: gnum(amt(l.price)), n: gnum(amt(l.n)) }; });
-  if (t) t.pals.forEach(function (p) { if (!out.some(function (o) { return o.pal === p.id; })) out.push({ pal: p.id, name: p.name, price: gnum(amt(p.price)), n: '' }); });
+  if (t) t.pals.forEach(function (p) { if (!out.some(function (o) { return o.pal === p.id; })) out.push({ pal: p.id, name: p.name, price: '', n: '' }); });
+  // palet fiyatı alımdan alıma değişir; son girişteki fiyat sadece öneri
+  out.forEach(function (o) { o.last = t && o.pal ? lastPalPrice(t, o.pal) : null; });
   return out;
 }
 // toptancı değişince ürünler onun listesinden seçilir, palet çeşitleri onunkiler olur (elle eklenenler kalır)
@@ -152,7 +154,7 @@ function renderPals() {
     return '<div class="prow" data-pi="' + i + '">'
       + (p.pal ? '<div class="f ro"><span>Palet</span><output>' + esc(p.name) + '</output></div>'
         : '<label class="f">Palet<input data-pf="name" value="' + esc(p.name) + '" autocomplete="off" placeholder="ör. Euro palet"></label>')
-      + '<label class="f">Palet başı (₺)<input data-pf="price" value="' + esc(p.price) + '" inputmode="decimal" autocomplete="off" placeholder="ör. 250"></label>'
+      + '<label class="f">Bu alımda palet başı (₺)<input data-pf="price" value="' + esc(p.price) + '" inputmode="decimal" autocomplete="off" placeholder="' + (p.last != null ? 'son ' + fmt(p.last) : 'ör. 250') + '"></label>'
       + '<label class="f">Adet<input data-pf="n" value="' + esc(p.n) + '" inputmode="decimal" autocomplete="off" placeholder="ör. 5"></label>'
       + '<button type="button" data-prm="' + i + '" aria-label="' + esc(p.name || 'Palet') + ' satırını çıkar">×</button></div>';
   }).join('');
@@ -165,7 +167,7 @@ function readDep(pal) {
     var r = { per: null, tot: null, perIn: false, inc: $('fDepIn').checked, err: '', lines: [], n: 0 }, sum = 0, one = fPals.length === 1;
     fPals.forEach(function (p, i) {
       var name = clean(p.name), pr = num(p.price), nRaw = String(p.n).trim(), n = num(nRaw);
-      if (!nRaw) { if (!one || !pal) return; n = pal; r.autoN = true; }
+      if (!nRaw) { if (!one || !pal || !String(p.price).trim()) return; n = pal; r.autoN = true; }
       if (n == null) r.err = r.err || (name || (i + 1) + '. palet') + ' için adedi sayı olarak yaz.';
       else if (!name) r.err = r.err || 'Palet çeşidinin adını yaz.';
       else if (pr == null) r.err = r.err || name + ' için palet başı fiyatı yaz.';
@@ -271,7 +273,8 @@ function readForm() {
   if (F.sp.err && F.inSum && F.goods != null) F.sp.err += ' (Toplam fiyattan içindeki ' + money(F.inSum) + ' düşüldü, mal bedeli ' + money(F.goods) + '.)';
   F.xs = extraShares(F.rows, F.xc.sum);
   F.total = F.sp.lines.reduce(function (t, l) { return t + (l.total || 0); }, 0); // mal bedeli
-  F.debt = F.total + F.inSum; // toptancıya
+  F.debt = F.total + F.inSum; // toptancısız girişte toptancıya
+  F.due = F.total + F.xc.sum + (F.dp.tot || 0); // toptancı hesabına: mal + nakliye/ek gider + palet
   return F;
 }
 function bad(el, on) { if (el) el.classList.toggle('bad', !!on || (!!el.value.trim() && num(el.value) == null)); }
@@ -325,7 +328,7 @@ function calc() {
   bad($('fNak'));
   document.querySelectorAll('#fCosts [data-c="amount"]').forEach(function (x) { bad(x); });
   var paid = num($('fPaid').value);
-  bad($('fPaid'), !editing && paid != null && paid > F.debt + 0.004);
+  bad($('fPaid'), !editing && !supOf(fSup) && fSup !== '__new' && paid != null && paid > F.debt + 0.004);
   // genel özet: çeşit tablosu, palet, mal bedeli, giderler, toplam ve ortalama koli başı maliyet
   var all = [];
   if (koliSum) {
@@ -356,7 +359,13 @@ function calc() {
       all.push('<span class="n">Ortalama koli başı maliyet <b>' + money(pCost / pKoli) + '</b></span>');
     }
     if (priced < rows.length) all.push('<span class="new">' + (rows.length - priced) + ' çeşidin fiyatı yok' + (pKoli ? '; toplam ve ortalama onlarsız hesaplandı' : '') + '.</span>');
-    if (!editing && F.debt && paid != null) all.push('<span>Şimdi ödenen ' + money(paid) + (F.debt - paid > 0.004 ? ' · toptancıya kalan borç <b>' + money(F.debt - paid) + '</b>' : ' · borç kalmıyor') + '</span>');
+    if (tSup || fSup === '__new') {
+      // toptancı hesabı: bu giriş eklenince önceki kalan + bu giriş − şimdi ödenen
+      var prev = tSup ? supAccount(tSup).rem - (editing ? shipDue(byId(db.ships, editing)) : 0) : 0, now = prev + F.due - (!editing && paid ? paid : 0);
+      all.push('<span>Toptancı hesabına yazılacak <b>' + money(F.due) + '</b></span>');
+      all.push('<span class="n">Hesapta önceki kalan ' + sm(prev) + (!editing && paid ? ' − şimdi ödenen ' + money(paid) : '') + ' → kalan <b>' + sm(now) + '</b></span>');
+    }
+    else if (!editing && F.debt && paid != null) all.push('<span>Şimdi ödenen ' + money(paid) + (F.debt - paid > 0.004 ? ' · toptancıya kalan borç <b>' + money(F.debt - paid) + '</b>' : ' · borç kalmıyor') + '</span>');
     else if (!editing && F.debt) all.push('<span>Toptancıya borç <b>' + money(F.debt) + '</b></span>');
   }
   if (F.inErr) all.push('<span class="new">' + F.inErr + '</span>');
@@ -383,7 +392,9 @@ function saveEntry() {
     else if (f.totalRaw && f.total == null) err = w + 'Fiyatı sayı olarak yaz, ör. 18000.';
     return !!err;
   });
-  var sp = F.sp, xc = F.xc, dp = F.dp, total = F.debt;
+  // toptancılı girişte tutarın tamamı toptancı hesabına yazılır, ödeme hesaba yapılır
+  var hasSup = fSup !== '' && fSup !== '__none';
+  var sp = F.sp, xc = F.xc, dp = F.dp, total = hasSup ? F.due : F.debt;
   var paidRaw = $('fPaid').value.trim(), paid = num(paidRaw), supNew = clean($('fSupNew').value);
   if (err) { /* satır hatası */ }
   else if (!fSup) err = 'Toptancıyı seç (yoksa "Toptancısız").';
@@ -395,9 +406,9 @@ function saveEntry() {
   else if (dp.err) err = dp.err;
   else if (!date) err = 'Tarihi seç.';
   else if (isNew && paidRaw && paid == null) err = 'Ödediğin tutarı sayı olarak yaz.';
-  else if (isNew && paidRaw && !total) err = 'Ödenen tutar için önce fiyatı yaz.';
-  else if (isNew && paidRaw && paid > total + 0.004) err = 'Ödenen, girişin toplamından (' + money(total) + ') fazla olamaz.';
-  else if (!isNew && shipPaid(s) > total + 0.004) err = 'Bu girişe ' + money(shipPaid(s)) + ' ödenmiş; toplam bundan az olamaz. Önce ödemeyi sil.';
+  else if (isNew && paidRaw && !hasSup && !total) err = 'Ödenen tutar için önce fiyatı yaz.';
+  else if (isNew && paidRaw && !hasSup && paid > total + 0.004) err = 'Ödenen, girişin toplamından (' + money(total) + ') fazla olamaz.';
+  else if (!isNew && !hasSup && shipPaid(s) > total + 0.004) err = 'Bu girişe ' + money(shipPaid(s)) + ' ödenmiş; toplam bundan az olamaz. Önce ödemeyi sil.';
   if (err) { $('fErr').textContent = err; $('fSup').classList.toggle('bad', !fSup || (fSup === '__new' && !supNew)); return; }
 
   var sup = fSup === '__new' ? ensureSup(supNew) : supOf(fSup), nNew = 0;
@@ -409,12 +420,14 @@ function saveEntry() {
   s.dep = dp.tot || null; s.depIn = !!(dp.tot && dp.inc); s.depPer = dp.tot ? dp.per : null; s.depPerIn = !!(dp.tot && dp.perIn);
   // palet çeşitleri: elle eklenen yeni çeşit toptancının palet listesine de eklenir
   s.depLines = dp.tot && (dp.lines || []).length ? dp.lines.map(function (l) {
-    var pal = l.pal || (sup ? ensurePal(sup, l.name, l.price).id : null);
+    var pal = l.pal || (sup ? ensurePal(sup, l.name).id : null);
     return { pal: pal, name: l.name, price: l.price, n: l.n };
   }) : null;
   if (!s.dep) s.depBack = null;
   var xs = F.xs;
-  if (isNew && paid > 0) s.pays.push({ id: 'o' + uid(), ts: s.ts, date: date, amount: paid });
+  if (isNew && paid > 0) (sup ? sup.pays : s.pays).push({ id: 'o' + uid(), ts: s.ts, date: date, amount: paid, note: sup ? 'giriş günü' : '' });
+  // toptancıya bağlanan eski girişin ödemeleri toptancı hesabına geçer
+  if (sup && s.pays.length) { sup.pays = sup.pays.concat(s.pays); s.pays = []; }
   db.entries = db.entries.filter(function (e) { return e.sid !== s.id; });
   var koli = 0;
   rows.forEach(function (f, i) {
@@ -491,18 +504,7 @@ $('fPaid').addEventListener('input', function () { $('fErr').textContent = ''; c
 $('fTotal').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
 $('fNak').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
 ['fDepPer', 'fDepTot', 'fDepIn', 'fNakIn'].forEach(function (id) { $(id).addEventListener(/In$/.test(id) ? 'change' : 'input', function () { $('fErr').textContent = ''; calc(); }); });
-// sayı kutularında yazarken binlik nokta; nokta tuşu virgül (kuruş) sayılır
-$('dlgEntry').addEventListener('input', function (ev) {
-  var el = ev.target;
-  if (el.getAttribute('inputmode') !== 'decimal') return;
-  var v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
-  if (ev.inputType === 'insertFromPaste') { var n = num(v); if (n != null) { el.value = gnum(amt(n)); return; } }
-  if (ev.data === '.' && v.charAt(pos - 1) === '.') v = v.slice(0, pos - 1) + (v.indexOf(',') < 0 ? ',' : '') + v.slice(pos);
-  var keep = v.slice(0, pos).replace(/[^\d,]/g, '').length, out = gnum(v), k = 0, j = 0;
-  while (j < out.length && k < keep) { if (/[\d,]/.test(out.charAt(j))) k++; j++; }
-  el.value = out;
-  try { el.setSelectionRange(j, j); } catch (e) {}
-}, true);
+$('dlgEntry').addEventListener('input', liveNum, true);
 $('fCosts').addEventListener('input', function (ev) {
   var k = ev.target.dataset.c, el = ev.target.closest('.xrow'); if (!k || !el) return;
   fCosts[+el.dataset.ci][k] = k === 'inc' ? ev.target.checked : ev.target.value; $('fErr').textContent = ''; calc();

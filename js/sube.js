@@ -31,7 +31,7 @@ function switchAcct(id) {
   meta('acct', id); load();
   document.querySelectorAll('dialog[open]').forEach(function (d) { if (d.id !== 'dlgAcct') d.close(); });
   view = today(); rKeep = {}; parsed = null;
-  stSup = ''; stNew = stEdit = stRet = false; payOpen = null; stLimit = 15;
+  stSup = ''; stNew = false; payOpen = null; stLimit = 15;
   resetSaleForm(); resetCash(); renderAcct(); renderAll();
   if ($('dlgAcct').open) renderAcctList();
   toast(acct.name + ' açıldı.');

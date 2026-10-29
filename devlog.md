@@ -2,6 +2,19 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 14:30 — Toptancı hesabı: ödemeler toplamdan, palet verme ve para iadesi ayrı, palet fiyatı girişte
+- **Toptancı hesabı:** toptancılı girişin tamamı (mal bedeli + nakliye + ek giderler + boş palet parası) toptancı hesabına borç yazılır (`shipDue`, `supAccount`). Ödemeler girişe bağlı değil, `t.pays`'te; toplamdan düşer. "Toplam fiyatın içinde" işaretleri sadece mal bedelinin hesabını etkiler. Giriş formundaki "Şimdi ödediğim" toptancı hesabına ödeme olarak yazılır (not: "giriş günü"); özette "Toptancı hesabına yazılacak" ve "önceki kalan → kalan" var.
+- Toptancılı giriş kartında ödeme/kalan yok; "Toptancı hesabına: mal bedeli + nakliye/ek gider + boş palet = X" satırı var. Toptancısız (eski) girişler eski usul: girişe ödeme, ayrı ödenen nakliye/palet giriş günü kasadan.
+- Toptancı sayfası baştan: KPI'lar (kalan borç/avans, bu ay alım, bendeki boş palet, palet parası alacağım), butonlar (+ Ürün girişi, Ödeme yap, Boş palet verdim, Palet parası aldım), **Hesap** tablosu (tarih · hareket · borç · ödeme · kalan, en yeni üstte; ödeme satırında sil; giriş satırına dokununca giriş açılır), palet hesabı, ürünler, palet çeşitleri, girişler.
+- **Ekleme pencereden:** satır içi ekleme formları kalktı; listelerin başlığındaki butonlar tek bir pencere açıyor (`dlgSup`, `openSd`/`saveSd`): toptancı bilgisi (ad, not, sil), ürün ekle (pencere açık kalır, marka durur), palet çeşidi ekle/düzenle/sil, ödeme, palet verdim, palet parası aldım.
+- **Boş palet:** iade iki ayrı kayıt: `t.gives` (tarih, çeşit başına adet) ve `t.refs` (tarih, tutar). `palLedger`: çeşit başına alınan / verdim / bende; verdiğim paletlerin parası en eski alımın fiyatından başlayarak (FIFO) hesaplanıyor, `claim` = bu − geri alınan.
+- **Palet fiyatı girişte:** palet çeşidinde fiyat yok (sadece ad). Girişte satır "Bu alımda palet başı" boş gelir, son fiyat öneri olarak (`lastPalPrice`). Tek çeşitte adet boşsa palet sayısı ancak fiyat yazılınca alınır.
+- Kayıtlar: kasa hareketinde toptancı ödemeleri `t.pays`'ten, geri alınan palet parası `t.refs`'ten; toptancılı girişlerin nakliye/palet parası kasadan ayrıca düşülmüyor (ödemeyle düşüyor).
+- `migrate`: önceki sürümün `rets`'i → `gives` + `refs`; palet çeşidindeki `price` silinir; toptancılı girişin ödemeleri toptancıya taşınır.
+- Yedek: `== TOPTANCI HAREKETLERİ ==` (`[ödeme]`, `[palet verdim]` + `palet Ad N adet`, `[palet parası]`, `toptancı`, `tutar`); toptancıda `palet Ad` fiyatsız. Eski `[palet iade]` okunursa ikisine bölünüyor.
+- `liveNum` (binlik nokta) core.js'e taşındı, iki pencerede kullanılıyor.
+- jsdom denemesi 46 adım geçti (hesap, ikinci giriş + toplamdan ödeme, palet verdim/para aldım FIFO, yedek, önceki sürüm verisinin taşınması).
+
 ## 2026-10-29 13:40 — Branch `subeler-toptancilar`: dosyalara bölme, şubeler, toptancılar, palet çeşitleri
 - Önceki iş (12:10 kaydı) bu branch'in ilk commit'i olarak kaydedildi.
 - **Dosyalara bölündü:** `app.js` ve `style.css` silindi. `js/`: core (yardımcılar, `mountPage`/`mountDialog`), store (localStorage, şubeler), model (ürün/giriş/stok/toptancı hesapları), satis, kayitlar, stok, toptanci, gider, yedek, giris, urun, sube, app (geçiş + başlatma). Her sayfanın ve pencerenin HTML'i kendi dosyasında, yüklenirken `.wrap`/`body`'ye ekleniyor. `css/`: base + sayfa başına dosya. `.gitignore` klasörlere izin veriyor.

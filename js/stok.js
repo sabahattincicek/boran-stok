@@ -39,7 +39,7 @@ function renderStock() {
   if (stSup) renderSupPanel(supOf(stSup)); else renderStockAll();
 }
 function pickSup(id) {
-  stSup = id; stEdit = stRet = false; stLimit = 15; payOpen = null;
+  stSup = id; stLimit = 15; payOpen = null;
   renderStock(); window.scrollTo(0, 0);
 }
 function addSup() {
@@ -83,7 +83,7 @@ function renderStockAll() {
   var rows = supsSorted().map(function (t) {
     var ss = shipsOf(t.id), l = lastEntry(ss), d = supDebt(t.id), pl = palLedger(t).open;
     return '<tr class="tap" data-stsup="' + t.id + '"><td><b>' + esc(t.name) + '</b>' + (l ? '<small class="unk"> · ' + dateTR(l.date) + '</small>' : '') + '</td>'
-      + '<td>' + ss.length + '</td><td' + (d > 0.004 ? ' class="neg"' : '') + '>' + money(d) + '</td><td>' + (Math.abs(pl) > 0.004 ? sm(pl) : '—') + '</td></tr>';
+      + '<td>' + ss.length + '</td><td' + (d > 0.004 ? ' class="neg"' : '') + '>' + (d < -0.004 ? 'avans ' + money(-d) : money(d)) + '</td><td>' + (Math.abs(pl) > 0.004 ? sm(pl) : '—') + '</td></tr>';
   });
   var none = shipsOf('');
   if (none.length && rows.length) rows.push('<tr><td class="unk">Toptancısız girişler</td><td>' + none.length + '</td><td>' + money(supDebt('')) + '</td><td>—</td></tr>');
@@ -115,7 +115,8 @@ function entHTML(e) {
 }
 var stLimit = 15, payOpen = null;
 function shipHTML(s) {
-  var ls = linesOf(s.id), tot = shipTotal(s), paid = shipPaid(s), rem = tot - paid, open = payOpen === s.id;
+  // toptancılı girişin ödemesi yok: tutarı toptancı hesabına yazılır, ödemeler hesabın toplamından düşer
+  var ls = linesOf(s.id), acc = !!s.sup, tot = acc ? shipDue(s) : shipTotal(s), paid = acc ? 0 : shipPaid(s), rem = acc ? 0 : tot - paid, open = payOpen === s.id;
   var koli = ls.reduce(function (t, e) { return t + e.koli; }, 0);
   var pays = s.pays.slice().sort(function (a, b) { return cmp(a.date + ' ' + a.ts, b.date + ' ' + b.ts); });
   return '<div class="ship' + (rem > 0.004 ? ' due' : '') + '">'
@@ -127,7 +128,7 @@ function shipHTML(s) {
         + '<span>' + (e.total != null ? money(e.total) + (k ? '<small>' + (e.auto ? 'pay · ' : '') + 'koli ' + money(e.total / k) + '</small>' : '')
           + (k && e.extra ? '<small>giderle koli ' + money((e.total + e.extra) / k) + '</small>' : '') : '—') + '</span></li>';
     }).join('') + '</ul>'
-    + (shipExtra(s) ? '<span class="xc">' + extraTxt(s) + '<small>maliyete eklendi' + (shipExtraOut(s) ? '; ayrı ödenenler borca eklenmedi' : '') + '</small></span>' : '')
+    + (shipExtra(s) ? '<span class="xc">' + extraTxt(s) + '<small>maliyete eklendi' + (!acc && shipExtraOut(s) ? '; ayrı ödenenler borca eklenmedi' : '') + '</small></span>' : '')
     + (s.dep > 0 ? '<div class="dep' + (s.depBack ? ' back' : '') + '"><span class="xc">Boş palet parası ' + money(s.dep)
         + ((s.depLines || []).length ? ' <small>(' + depLinesTxt(s.depLines) + ')</small>'
           : s.depPer ? ' <small>(' + fmt(Math.round(s.dep / s.depPer * 100) / 100) + ' palet × ' + money(s.depPer) + ')</small>' : '')
@@ -138,7 +139,9 @@ function shipHTML(s) {
         ? '<button type="button" data-depundo="' + s.id + '">Geri al</button>'
         : s.sup ? '' : '<input type="date" data-depd="' + s.id + '" value="' + today() + '" aria-label="İade tarihi"><button type="button" class="paidbtn" data-depback="' + s.id + '">İade edildi</button>')
       + '</div>' : '')
-    + (tot ? '<div class="pays">'
+    + (acc && tot ? '<div class="pays"><div class="pst acc">Toptancı hesabına: mal bedeli ' + money(shipGoods(s))
+        + (shipExtra(s) ? ' + nakliye/ek gider ' + money(shipExtra(s)) : '') + (s.dep > 0 ? ' + boş palet ' + money(s.dep) : '') + ' = <b>' + money(tot) + '</b></div></div>' : '')
+    + (!acc && tot ? '<div class="pays">'
       + pays.map(function (x) {
         return '<div class="pay"><span>' + dateTR(x.date) + ' ödeme</span><b>' + money(x.amount) + '</b>'
           + '<button type="button" class="danger" data-shpdel="' + s.id + '|' + x.id + '">Sil</button>'

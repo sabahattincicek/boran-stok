@@ -53,12 +53,17 @@ function renderRecords() {
   db.entries.forEach(function (e) { if (inPer(e.date, p) && e.total != null) buy += e.total; });
   db.ships.forEach(function (s) {
     s.pays.forEach(function (x) { if (inPer(x.date, p)) supPaid += x.amount; });
+    if (s.dep > 0 && s.depBack && inPer(s.depBack, p)) dep += s.dep;
+    // toptancılı girişte nakliye, ek gider ve palet parası toptancı hesabındadır; ödemelerle düşer
+    if (s.sup) return;
     if (inPer(s.date, p)) extra += shipExtraOut(s);
     if (s.dep > 0 && !s.depIn && inPer(s.date, p)) dep -= s.dep;
-    if (s.dep > 0 && s.depBack && inPer(s.depBack, p)) dep += s.dep;
   });
-  // toptancıya boş palet verilince geri alınan para
-  db.sups.forEach(function (t) { t.rets.forEach(function (r) { if (inPer(r.date, p)) dep += r.amount; }); });
+  // toptancı hesabına ödemeler ve boş paletler için geri alınan para
+  db.sups.forEach(function (t) {
+    t.pays.forEach(function (x) { if (inPer(x.date, p)) supPaid += x.amount; });
+    t.refs.forEach(function (x) { if (inPer(x.date, p)) dep += x.amount; });
+  });
   var gross = S.knownRev - S.cost, net = gross + inc - out, flow = S.paid + inc - out - supPaid - extra + dep, rem = S.rem;
   var unkTxt = S.unkKoli ? fmt(S.unkKoli) + ' koli alış fiyatı bilinmiyor (' + money(S.unkRev) + ' ciro hariç)' : '';
   $('rKpis').innerHTML =

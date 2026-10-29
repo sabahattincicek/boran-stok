@@ -34,25 +34,42 @@ function extraTxt(s) {
 function extraShares(lines, amount) {
   return amount > 0 ? spread(lines.map(function (l) { return { koli: l.koli, total: null }; }), amount).lines.map(function (x) { return x.total; }) : lines.map(function () { return 0; });
 }
-// boş palet parası: paletler geri verilince iade edilir, maliyete girmez; toplamın içindeyse toptancı borcunda, değilse giriş günü ödenmiş.
-// Toptancısı olan girişlerin palet parası toptancının palet hesabından iade edilir (palLedger); burada sadece toptancısızlar
+// boş palet parası: paletler geri verilince iade edilir, maliyete girmez.
+// Toptancısız girişte: toplamın içindeyse borçta, değilse giriş günü ödenmiş; iadesi girişten işaretlenir.
+// Toptancılı girişte: toptancı hesabına borç yazılır, iadesi toptancının palet hesabından (palLedger)
 function depOpen(s) { return s.dep > 0 && !s.depBack && !s.sup; }
-// boş palet satırları: "5 × Euro palet (250 ₺)"
-function depLinesTxt(lines) { return (lines || []).map(function (l) { return fmt(l.n) + ' × ' + esc(l.name) + ' (' + money(l.price) + ')'; }).join(' · '); }
+// boş palet satırları: "5 × Euro palet (250 ₺)"; fiyatsız (geri verilen paletler): "5 × Euro palet"
+function depLinesTxt(lines) { return (lines || []).map(function (l) { return fmt(l.n) + ' × ' + esc(l.name) + (l.price != null ? ' (' + money(l.price) + ')' : ''); }).join(' · '); }
 function shipPaid(s) { return s.pays.reduce(function (t, p) { return t + p.amount; }, 0); }
-// toptancıya kalan borç; supId verilirse sadece o toptancının girişleri
+// toptancılı girişin toptancı hesabına yazılan tutarı: mal bedeli + nakliye + ek giderler + boş palet parası
+// ("toplam fiyatın içinde" sadece mal bedelinin hesabını etkiler). Toptancısızda eski usul shipTotal
+function shipGoods(s) { return linesOf(s.id).reduce(function (t, e) { return t + (e.total || 0); }, 0); }
+function shipDue(s) { return s.sup ? shipGoods(s) + shipExtra(s) + (s.dep || 0) : shipTotal(s); }
+// toptancı hesabı: girişlerden borç, ödemeler toplamdan düşer (girişe bağlı değil)
+function supAccount(t) {
+  var A = { due: 0, paid: 0 };
+  shipsOf(t.id).forEach(function (s) { A.due += shipDue(s); });
+  t.pays.forEach(function (x) { A.paid += x.amount; });
+  A.rem = Math.round((A.due - A.paid) * 100) / 100;
+  return A;
+}
+// toptancıya kalan borç. supId: o toptancı; '' toptancısız girişler; boşsa hepsi (avans borçtan düşmez)
 function supDebt(supId) {
-  return db.ships.reduce(function (t, s) { return supId != null && (s.sup || '') !== supId ? t : t + Math.max(0, shipTotal(s) - shipPaid(s)); }, 0);
+  if (supId) { var t = supOf(supId); return t ? supAccount(t).rem : 0; }
+  var legacy = shipsOf('').reduce(function (t, s) { return t + Math.max(0, shipTotal(s) - shipPaid(s)); }, 0);
+  if (supId === '') return legacy;
+  return db.sups.reduce(function (t, x) { return t + Math.max(0, supAccount(x).rem); }, legacy);
 }
 
 /* ---------- toptancılar ---------- */
-// toptancı: { id, name, note, pids: kendi ürün listesi, pals: boş palet çeşitleri {id, name, price}, rets: palet iadeleri }
+// toptancı: { id, name, note, pids: ürün listesi, pals: boş palet çeşitleri {id, name},
+//   pays: ödemeler, gives: geri verilen boş paletler, refs: geri alınan palet parası }
 function supOf(id) { return id ? byId(db.sups, id) || null : null; }
 function supName(id) { var s = supOf(id); return s ? s.name : ''; }
 function findSup(name) { var k = fold(name); return db.sups.filter(function (s) { return fold(s.name) === k; })[0] || null; }
 function ensureSup(name) {
   var s = findSup(name);
-  if (!s) { s = { id: 't' + uid(), ts: Date.now(), name: clean(name), note: '', pids: [], pals: [], rets: [] }; db.sups.push(s); }
+  if (!s) { s = { id: 't' + uid(), ts: Date.now(), name: clean(name), note: '', pids: [], pals: [], pays: [], gives: [], refs: [] }; db.sups.push(s); }
   return s;
 }
 function supsSorted() { return db.sups.slice().sort(function (a, b) { return cmp(a.name, b.name); }); }
@@ -65,33 +82,46 @@ function supBrands(sup) {
   }).filter(function (b) { return b.ids.length; });
 }
 function findPal(sup, name) { var k = fold(name); return sup.pals.filter(function (p) { return fold(p.name) === k; })[0] || null; }
-function ensurePal(sup, name, price) {
+function ensurePal(sup, name) {
   var p = findPal(sup, name);
-  if (!p) { p = { id: 'b' + uid(), name: clean(name), price: price }; sup.pals.push(p); }
+  if (!p) { p = { id: 'b' + uid(), name: clean(name) }; sup.pals.push(p); }
   return p;
 }
-// Toptancının palet hesabı: girişlerde ödenen boş palet parası ve paletler, iadelerde geri alınanlar.
-// Çeşit başına alınan / iade edilen palet; para olarak ödenen, geri alınan ve bekleyen
+// bu palet çeşidinin son girişteki fiyatı (girişte öneri olarak)
+function lastPalPrice(sup, palId) {
+  var r = null;
+  shipsOf(sup.id).sort(function (a, b) { return cmp(entKey(a), entKey(b)); }).forEach(function (s) {
+    (s.depLines || []).forEach(function (l) { if (l.pal === palId) r = l.price; });
+  });
+  return r;
+}
+// Toptancının palet hesabı. Çeşit başına: girişlerde alınan, geri verilen, bende kalan.
+// Para: girişlerde ödenen palet parası, geri alınan; geri verilen paletlerin parası en eski fiyattan başlayarak hesaplanır
 function palLedger(sup) {
-  var m = {}, order = [], R = { out: 0, back: 0 };
+  var m = {}, order = [], R = { out: 0, back: 0, given: 0 };
   function row(l) {
     var k = l.pal || 'n:' + fold(l.name);
-    if (!m[k]) { m[k] = { name: l.name, out: 0, back: 0 }; order.push(k); }
+    if (!m[k]) { m[k] = { name: l.name, out: 0, giv: 0, q: [], val: 0 }; order.push(k); }
     return m[k];
   }
   sup.pals.forEach(function (p) { row({ pal: p.id, name: p.name }).name = p.name; });
-  shipsOf(sup.id).forEach(function (s) {
+  shipsOf(sup.id).sort(function (a, b) { return cmp(entKey(a), entKey(b)); }).forEach(function (s) {
     if (!(s.dep > 0)) return;
     R.out += s.dep;
     if (s.depBack) R.back += s.dep; // toptancı eklenmeden önce girişten iade edilmiş
-    (s.depLines || []).forEach(function (l) { row(l).out += l.n; });
+    (s.depLines || []).forEach(function (l) { var r = row(l); r.out += l.n; r.q.push({ n: l.n, price: l.price }); });
   });
-  sup.rets.forEach(function (r) {
-    R.back += r.amount;
-    r.lines.forEach(function (l) { row(l).back += l.n; });
-  });
-  R.rows = order.map(function (k) { return m[k]; }).filter(function (x, i) { return x.out || x.back || sup.pals.some(function (p) { return p.id === order[i]; }); });
-  R.open = R.out - R.back;
+  sup.gives.forEach(function (g) { g.lines.forEach(function (l) { row(l).giv += l.n; }); });
+  sup.refs.forEach(function (x) { R.back += x.amount; });
+  R.rows = order.map(function (k) {
+    var r = m[k], left = r.giv, last = 0;
+    r.q.forEach(function (x) { var u = Math.min(x.n, left); r.val += u * x.price; left -= u; last = x.price; });
+    r.val += left * last; // aldığımdan fazla verdiysem son fiyattan
+    R.given += r.val;
+    return r;
+  }).filter(function (r, i) { return r.out || r.giv || sup.pals.some(function (p) { return p.id === order[i]; }); });
+  R.open = R.out - R.back;     // geri gelmemiş bütün palet parası
+  R.claim = R.given - R.back;  // verdiğim paletlerin parasından henüz iade almadığım
   return R;
 }
 // iadesi beklenen palet parası: toptancısız girişler + toptancıların palet hesapları

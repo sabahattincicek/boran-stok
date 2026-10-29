@@ -79,4 +79,16 @@ function arm(btn, fn) {
   setTimeout(function () { disarm(btn); }, 4000);
 }
 function disarm(btn) { if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = btn.dataset.txt; } }
+// sayı kutularında yazarken binlik nokta; nokta tuşu virgül (kuruş) sayılır. Pencereye capture ile bağlanır
+function liveNum(ev) {
+  var el = ev.target;
+  if (el.getAttribute('inputmode') !== 'decimal') return;
+  var v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
+  if (ev.inputType === 'insertFromPaste') { var n = num(v); if (n != null) { el.value = gnum(amt(n)); return; } }
+  if (ev.data === '.' && v.charAt(pos - 1) === '.') v = v.slice(0, pos - 1) + (v.indexOf(',') < 0 ? ',' : '') + v.slice(pos);
+  var keep = v.slice(0, pos).replace(/[^\d,]/g, '').length, out = gnum(v), k = 0, j = 0;
+  while (j < out.length && k < keep) { if (/[\d,]/.test(out.charAt(j))) k++; j++; }
+  el.value = out;
+  try { el.setSelectionRange(j, j); } catch (e) {}
+}
 function pressChip(box, attr, v) { box.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset[attr] === v)); }); }
