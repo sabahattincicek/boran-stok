@@ -81,7 +81,11 @@
 .ret.give b{color:var(--accent)}
 .tbl td.mv{font-family:inherit;font-size:.82rem;white-space:normal;text-align:left}
 .tbl td.mv .lnk{font-size:.75rem}
-.ship .pst.acc{font-weight:400;color:var(--ink)}
+.kal{list-style:none;margin:0;padding:8px 10px;background:var(--tint);border-radius:10px;display:flex;flex-direction:column;gap:2px;font-size:.86rem}
+.kal li{display:flex;justify-content:space-between;gap:10px}
+.kal li span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kal small{color:var(--muted);font-size:.76rem}
+.kal li.t{font-weight:700;border-top:1px solid var(--line);padding-top:3px;margin-top:2px}
 
 /* toptancı butonları: sığdığı kadar yan yana, masaüstünde tek satır */
 .supacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}

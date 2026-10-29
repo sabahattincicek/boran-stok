@@ -2,6 +2,10 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 15:35 — Giriş kartı: sadece fiyat kalemleri
+- Toptancılı giriş kartında "maliyete eklendi", "iadesi toptancının palet hesabında", "Toptancı hesabına: …" yazıları kalktı. Ürün satırlarının altında kısa kalem listesi (`.kal`): Mal bedeli, Nakliye, her ek gider, Boş palet (adet × çeşit (fiyat)), Toplam.
+- Toptancısız eski giriş kartları eskisi gibi (ödemeler, palet iadesi butonu).
+
 ## 2026-10-29 15:20 — Toptancısız giriş kaldırıldı
 - Giriş formundaki "Toptancısız" seçeneği kalktı; seçenekler sadece toptancılar ve "+ Yeni toptancı…". Toptancı seçilmeden kaydedilmiyor.
 - Toptancısı olmayan eski giriş düzenlenince toptancı kutusu boş ve kırmızı açılıyor, "Bu girişin toptancısı yok; kaydetmek için toptancı seç." yazıyor. Eski girişler silinmedi/değişmedi; görüntüleme, ödeme ve palet iadesi eskisi gibi.

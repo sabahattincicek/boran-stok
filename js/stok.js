@@ -112,19 +112,22 @@ function shipHTML(s) {
         + '<span>' + (e.total != null ? money(e.total) + (k ? '<small>' + (e.auto ? 'pay · ' : '') + 'koli ' + money(e.total / k) + '</small>' : '')
           + (k && e.extra ? '<small>giderle koli ' + money((e.total + e.extra) / k) + '</small>' : '') : '—') + '</span></li>';
     }).join('') + '</ul>'
-    + (shipExtra(s) ? '<span class="xc">' + extraTxt(s) + '<small>maliyete eklendi' + (!acc && shipExtraOut(s) ? '; ayrı ödenenler borca eklenmedi' : '') + '</small></span>' : '')
-    + (s.dep > 0 ? '<div class="dep' + (s.depBack ? ' back' : '') + '"><span class="xc">Boş palet parası ' + money(s.dep)
+    + (!acc && shipExtra(s) ? '<span class="xc">' + extraTxt(s) + '<small>maliyete eklendi' + (shipExtraOut(s) ? '; ayrı ödenenler borca eklenmedi' : '') + '</small></span>' : '')
+    + (!acc && s.dep > 0 ? '<div class="dep' + (s.depBack ? ' back' : '') + '"><span class="xc">Boş palet parası ' + money(s.dep)
         + ((s.depLines || []).length ? ' <small>(' + depLinesTxt(s.depLines) + ')</small>'
           : s.depPer ? ' <small>(' + fmt(Math.round(s.dep / s.depPer * 100) / 100) + ' palet × ' + money(s.depPer) + ')</small>' : '')
         + (s.depIn ? ' <small>(toplamın içinde)</small>' : '')
-        // toptancılı girişin paleti toptancının palet hesabından iade edilir
-        + '<small>' + (s.depBack ? 'İade edildi · ' + dateTR(s.depBack) : s.sup ? 'İadesi toptancının palet hesabında' : 'İade bekliyor') + '</small></span>'
+        + '<small>' + (s.depBack ? 'İade edildi · ' + dateTR(s.depBack) : 'İade bekliyor') + '</small></span>'
       + (s.depBack
         ? '<button type="button" data-depundo="' + s.id + '">Geri al</button>'
-        : s.sup ? '' : '<button type="button" class="paidbtn" data-sd="depback" data-ref="' + s.id + '">İade edildi</button>')
+        : '<button type="button" class="paidbtn" data-sd="depback" data-ref="' + s.id + '">İade edildi</button>')
       + '</div>' : '')
-    + (acc && tot ? '<div class="pays"><div class="pst acc">Toptancı hesabına: mal bedeli ' + money(shipGoods(s))
-        + (shipExtra(s) ? ' + nakliye/ek gider ' + money(shipExtra(s)) : '') + (s.dep > 0 ? ' + boş palet ' + money(s.dep) : '') + ' = <b>' + money(tot) + '</b></div></div>' : '')
+    // toptancılı giriş: sadece fiyat kalemleri
+    + (acc && tot ? '<ul class="kal"><li><span>Mal bedeli</span><span>' + money(shipGoods(s)) + '</span></li>'
+        + (s.nak ? '<li><span>Nakliye</span><span>' + money(s.nak) + '</span></li>' : '')
+        + (s.costs || []).map(function (c) { return '<li><span>' + esc(c.desc) + '</span><span>' + money(c.amount) + '</span></li>'; }).join('')
+        + (s.dep > 0 ? '<li><span>Boş palet' + ((s.depLines || []).length ? ' <small>' + depLinesTxt(s.depLines) + '</small>' : '') + '</span><span>' + money(s.dep) + '</span></li>' : '')
+        + '<li class="t"><span>Toplam</span><span>' + money(tot) + '</span></li></ul>' : '')
     + (!acc && tot ? '<div class="pays">'
       + pays.map(function (x) {
         return '<div class="pay"><span>' + dateTR(x.date) + ' ödeme</span><b>' + money(x.amount) + '</b>'
