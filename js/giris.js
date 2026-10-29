@@ -23,7 +23,7 @@ mountDialog(`
     <button type="button" class="dash" id="fAddPal">+ Palet çeşidi ekle</button>
   </div>
   <div class="fblk">
-    <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür. (Toptancısız girişte işaretli değilse giriş günü ayrıca ödenmiş sayılır.)</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
+    <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
     <input id="fNak" inputmode="decimal" autocomplete="off" placeholder="Boşsa nakliye yok" aria-label="Nakliye">
   </div>
   <div class="fblk">
@@ -51,7 +51,7 @@ mountDialog(`
 <datalist id="dlVar"></datalist>`);
 
 // Bir girişte birden fazla ürün olur; satırlar fRows'ta yazıldığı haliyle tutulur.
-// fSup: toptancı id'si, '' seçilmedi, '__none' toptancısız, '__new' yeni toptancı. fPals: palet çeşidi satırları
+// fSup: toptancı id'si, '' seçilmedi, '__new' yeni toptancı (toptancısız giriş yok). fPals: palet çeşidi satırları
 var editing = null, fRows = [], fSup = '', fPals = [];
 function fillDatalists(brand) {
   var seen = {}, bk = fold(brand || '');
@@ -60,11 +60,11 @@ function fillDatalists(brand) {
     .map(function (id) { var v = db.products[id].variety; if (seen[fold(v)]) return ''; seen[fold(v)] = 1; return '<option value="' + esc(v) + '">'; }).join('');
 }
 function newRow(p) { return { brand: p ? p.brand : '', variety: p ? p.variety : '', koli: '', kpp: '', palet: '', total: '' }; }
-// toptancı seçimi: listedekiler, toptancısız, yeni
+// toptancı seçimi: listedekiler ya da yeni; her girişin toptancısı olmalı
 function renderSupSel() {
   $('fSup').innerHTML = '<option value="">— Toptancı seç —</option>'
     + supsSorted().map(function (t) { return '<option value="' + t.id + '">' + esc(t.name) + '</option>'; }).join('')
-    + '<option value="__none">Toptancısız</option><option value="__new">+ Yeni toptancı…</option>';
+    + '<option value="__new">+ Yeni toptancı…</option>';
   $('fSup').value = fSup;
   $('fSupNewL').hidden = fSup !== '__new';
   $('fSup').classList.toggle('bad', false);
@@ -89,7 +89,8 @@ function openEntry(shipId, preset, supId) {
   editing = shipId || null;
   var s = editing && byId(db.ships, editing);
   // yeni girişte: verilen toptancı, tek toptancı varsa o, yoksa seçtirilir
-  fSup = s ? s.sup || '__none' : supId ? supId : db.sups.length === 1 ? db.sups[0].id : '';
+  // toptancısı olmayan eski giriş düzenlenirken toptancı seçtirilir
+  fSup = s ? s.sup || '' : supId ? supId : db.sups.length === 1 ? db.sups[0].id : '';
   $('fSupNew').value = '';
   renderSupSel();
   // eski usul (çeşitsiz) yazılmış palet parası eski kutularda açılır
@@ -124,6 +125,7 @@ function openEntry(shipId, preset, supId) {
   $('dlgEntry').showModal();
   var first = !fSup ? $('fSup') : $('fLines').querySelector(preset ? '[data-f="koli"]' : '[data-f="brand"]');
   if (!s && first) first.focus();
+  if (s && !fSup) { $('fSup').classList.add('bad'); $('fErr').textContent = 'Bu girişin toptancısı yok; kaydetmek için toptancı seç.'; $('fSup').focus(); }
 }
 var fCosts = [];
 function renderCosts() {
@@ -393,11 +395,11 @@ function saveEntry() {
     return !!err;
   });
   // toptancılı girişte tutarın tamamı toptancı hesabına yazılır, ödeme hesaba yapılır
-  var hasSup = fSup !== '' && fSup !== '__none';
+  var hasSup = fSup !== '';
   var sp = F.sp, xc = F.xc, dp = F.dp, total = hasSup ? F.due : F.debt;
   var paidRaw = $('fPaid').value.trim(), paid = num(paidRaw), supNew = clean($('fSupNew').value);
   if (err) { /* satır hatası */ }
-  else if (!fSup) err = 'Toptancıyı seç (yoksa "Toptancısız").';
+  else if (!fSup) err = 'Toptancıyı seç; listede yoksa "+ Yeni toptancı…" ile ekle.';
   else if (fSup === '__new' && !supNew) err = 'Yeni toptancının adını yaz.';
   else if (grandRaw && grand == null) err = 'Girişin toplam fiyatını sayı olarak yaz, ör. 50000.';
   else if (F.inErr) err = F.inErr;

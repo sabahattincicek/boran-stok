@@ -2,6 +2,11 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-29 15:20 — Toptancısız giriş kaldırıldı
+- Giriş formundaki "Toptancısız" seçeneği kalktı; seçenekler sadece toptancılar ve "+ Yeni toptancı…". Toptancı seçilmeden kaydedilmiyor.
+- Toptancısı olmayan eski giriş düzenlenince toptancı kutusu boş ve kırmızı açılıyor, "Bu girişin toptancısı yok; kaydetmek için toptancı seç." yazıyor. Eski girişler silinmedi/değişmedi; görüntüleme, ödeme ve palet iadesi eskisi gibi.
+- jsdom denemesi 56 adım geçti.
+
 ## 2026-10-29 15:05 — Her ekleme/düzeltme pencereden; listeler tek sütun; palet verdimde "bende kalan"
 - Kural (kullanıcı): her ekleme ve düzeltme pencere (dialog) ile yapılır; dinamik listeler tek sütun, tam genişlik.
 - Stok sayfasında kalan satır içi formlar pencereye taşındı (`dlgSup`, yeni modlar): "+ Toptancı" (`yeni`), toptancısız girişe "Ödeme yap" (`shpay`), toptancısız girişin palet parası "İade edildi" (`depback`, tarih pencerede). `stNew`, `payOpen`, `openPay`/`savePay`/`markDep` kalktı; geri alma `undoDep`.
