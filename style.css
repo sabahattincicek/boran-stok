@@ -193,6 +193,9 @@ details.bsel summary .c{margin-left:auto;font-size:.78rem;font-weight:600;text-t
 .tbl tfoot td{font-weight:700;border-top:2px solid var(--ink)}
 .tbl .neg{color:var(--bad)}
 .tbl .unk{color:var(--muted)}
+.tbl.sum{margin-bottom:10px}
+.tbl.sum table{font-size:.8rem}
+.tbl.sum th,.tbl.sum td{padding:5px 8px}
 #rQ{font-size:16px}
 
 /* gelir-gider */

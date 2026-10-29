@@ -448,9 +448,25 @@ function renderRecordList(p) {
     if ((rPay === 'nakit' || rPay === 'havale') && (s.pay || 'nakit') !== rPay) return false;
     return !q || fold(saleText(s)).indexOf(q) >= 0;
   }).sort(function (a, b) { return cmp(entKey(b), entKey(a)); });
-  var tot = 0, rem = 0;
-  list.forEach(function (s) { tot += saleTotal(s); rem += saleTotal(s) - salePaid(s); });
-  $('rCount').textContent = list.length ? list.length + ' satış · ' + money(tot) + (rem > 0.004 ? ' · alacak ' + money(rem) : '') : '';
+  var tot = 0, rem = 0, koli = 0, by = {};
+  list.forEach(function (s) {
+    tot += saleTotal(s); rem += saleTotal(s) - salePaid(s);
+    s.items.forEach(function (i) { var o = by[i.pid] = by[i.pid] || { n: 0, t: 0 }; o.n += i.n; o.t += i.n * i.price; koli += i.n; });
+  });
+  $('rCount').textContent = list.length ? list.length + ' satış · ' + fmt(koli) + ' koli · ' + money(tot) + (rem > 0.004 ? ' · alacak ' + money(rem) : '') : '';
+  // listedeki satışların çeşit özeti (filtre ve aramaya göre)
+  var rows = '', ids = [];
+  brands().forEach(function (b) { b.ids.forEach(function (id) { if (by[id]) ids.push(id); }); });
+  Object.keys(by).forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); }); // silinmiş ürünler
+  ids.forEach(function (id) {
+    var o = by[id];
+    rows += '<tr><td>' + esc(pname(id)) + '</td><td>' + fmt(o.n) + '</td><td>' + money(o.t) + '</td><td>' + (o.n ? money(o.t / o.n) : '—') + '</td></tr>';
+  });
+  $('rSum').hidden = !rows;
+  $('rSum').innerHTML = rows
+    ? '<table><thead><tr><th>Çeşit</th><th>Koli</th><th>Tutar</th><th>Ort. koli</th></tr></thead><tbody>' + rows + '</tbody>'
+      + '<tfoot><tr><td>Toplam</td><td>' + fmt(koli) + '</td><td>' + money(tot) + '</td><td>' + (koli ? money(tot / koli) : '—') + '</td></tr></tfoot></table>'
+    : '';
   if (!list.length) { $('rList').innerHTML = '<div class="empty">Satış bulunamadı.</div>'; $('rMore').hidden = true; return; }
   var dayTot = {};
   list.forEach(function (s) { var d = dayTot[s.date] = dayTot[s.date] || { n: 0, t: 0, r: 0 }; d.n++; d.t += saleTotal(s); d.r += saleTotal(s) - salePaid(s); });
