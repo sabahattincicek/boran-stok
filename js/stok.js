@@ -65,7 +65,7 @@ function renderStockAll() {
 
   // toptancılar: giriş, borç, iadesi beklenen palet parası; satıra dokununca toptancının sayfası açılır
   var rows = supsSorted().map(function (t) {
-    var ss = shipsOf(t.id), l = lastEntry(ss), d = supDebt(t.id), pl = palLedger(t).open;
+    var ss = shipsOf(t.id), l = lastEntry(ss), d = supDebt(t.id), pl = palSum(t).open;
     return '<tr class="tap" data-stsup="' + t.id + '"><td><b>' + esc(t.name) + '</b>' + (l ? '<small class="unk"> · ' + dateTR(l.date) + '</small>' : '') + '</td>'
       + '<td>' + ss.length + '</td><td' + (d > 0.004 ? ' class="neg"' : '') + '>' + (d < -0.004 ? 'avans ' + money(-d) : money(d)) + '</td><td>' + (Math.abs(pl) > 0.004 ? sm(pl) : '—') + '</td></tr>';
   });
@@ -73,7 +73,7 @@ function renderStockAll() {
   if (none.length && rows.length) rows.push('<tr><td class="unk">Toptancısız girişler</td><td>' + none.length + '</td><td>' + money(supDebt('')) + '</td><td>—</td></tr>');
   $('stSupTbl').innerHTML = rows.length
     ? '<table><thead><tr><th>Toptancı</th><th>Giriş</th><th>Borç</th><th>Palet parası</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>'
-    : '<div class="empty" style="border:0">Henüz toptancı yok. Yukarıdan <b>+ Toptancı</b> ile ekle; her toptancının ürünleri, boş paletleri ve girişleri ayrı tutulur.</div>';
+    : '<div class="empty" style="border:0">Henüz toptancı yok. Yukarıdan <b>+ Toptancı</b> ile ekle; her toptancının ürünleri, girişleri ve hesabı ayrı tutulur.</div>';
 
   var rec = db.ships.slice().sort(function (a, b) { return cmp(entKey(b), entKey(a)); });
   $('recent').innerHTML = rec.length ? rec.slice(0, stLimit).map(shipHTML).join('') : '<div class="empty">Giriş yok.</div>';
@@ -114,8 +114,6 @@ function shipHTML(s) {
     }).join('') + '</ul>'
     + (!acc && shipExtra(s) ? '<span class="xc">' + extraTxt(s) + '<small>maliyete eklendi' + (shipExtraOut(s) ? '; ayrı ödenenler borca eklenmedi' : '') + '</small></span>' : '')
     + (!acc && s.dep > 0 ? '<div class="dep' + (s.depBack ? ' back' : '') + '"><span class="xc">Boş palet parası ' + money(s.dep)
-        + ((s.depLines || []).length ? ' <small>(' + depLinesTxt(s.depLines) + ')</small>'
-          : s.depPer ? ' <small>(' + fmt(Math.round(s.dep / s.depPer * 100) / 100) + ' palet × ' + money(s.depPer) + ')</small>' : '')
         + (s.depIn ? ' <small>(toplamın içinde)</small>' : '')
         + '<small>' + (s.depBack ? 'İade edildi · ' + dateTR(s.depBack) : 'İade bekliyor') + '</small></span>'
       + (s.depBack
@@ -126,7 +124,7 @@ function shipHTML(s) {
     + (acc && tot ? '<ul class="kal"><li><span>Mal bedeli</span><span>' + money(shipGoods(s)) + '</span></li>'
         + (s.nak ? '<li><span>Nakliye</span><span>' + money(s.nak) + '</span></li>' : '')
         + (s.costs || []).map(function (c) { return '<li><span>' + esc(c.desc) + '</span><span>' + money(c.amount) + '</span></li>'; }).join('')
-        + (s.dep > 0 ? '<li><span>Boş palet' + ((s.depLines || []).length ? ' <small>' + depLinesTxt(s.depLines) + '</small>' : '') + '</span><span>' + money(s.dep) + '</span></li>' : '')
+        + (s.dep > 0 ? '<li><span>Palet parası</span><span>' + money(s.dep) + '</span></li>' : '')
         + '<li class="t"><span>Toplam</span><span>' + money(tot) + '</span></li></ul>' : '')
     + (!acc && tot ? '<div class="pays">'
       + pays.map(function (x) {

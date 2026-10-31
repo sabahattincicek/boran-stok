@@ -2,6 +2,27 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-31 09:04 — `subeler-toptancilar` main'e birleştirildi
+- Commit edilmemiş işler (ortak toptancılar, sade palet) commit edildi; branch main'e fast-forward ile alınıp `origin/main`'e gönderildi.
+
+## 2026-10-30 13:05 — Palet sadeleşti: girişte tek "Palet parası", toptancıda "Palet iadesi"
+- Kullanıcı karışık buldu. Kalktı: palet çeşitleri (`t.pals`, `s.depLines`, `s.depPer`, `s.depPerIn`), "Boş palet verdim", "Palet parası aldım", palet hesabı tablosu, FIFO (`palLedger`, `lastPalPrice`, `findPal`, `ensurePal`, `depLinesTxt`).
+- **Giriş formu:** tek kutu "Palet parası (₺)" (`#fDep`, `s.dep`) ve "toplam fiyatın içinde" işareti (`s.depIn`, aynen duruyor). Özette çeşitlerdeki palet sayısı varsa palet başı görünüyor.
+- **Palet iadesi:** toptancı sayfasında buton, pencere (`openSd('iade')`): adet + borçtan düşecek tutar + tarih + not. Tutar boşsa adet × palet başı ortalama (`palSum().unit`: palet parası ÷ palet sayısı, kutuda "= …"); farklıysa elle yazılır. İade edilmemiş palet parasından fazlası düşülemez. Kayıt `t.backs = [{id, ts, date, n, amount, note}]`.
+- **Hesap:** `supAccount`: kalan = borç − ödeme − palet iadesi. Hesap tablosunda iade satırı ("Ödeme / iade" sütunu, sil). Kasaya girmez; ödeme kaydı açmaz. KPI: "İade edilmemiş palet parası" (`palSum().open`).
+- **Eski kayıtlar (`simplifyPal`, açılışta bir kez):** "palet verdim" → palet iadesi, tutarı girişlerin ortalama palet fiyatından (eski hesap FIFO'ydu; fiyatlar farklıysa az fark edebilir). Çeşit alanları silinir. `t.refs` (elden alınmış para) kalır: yenisi eklenmez, Hesap'ta "Palet parası elden alındı" satırı, borcu artırır, kasada duruyor; böylece net borç ve kasa değişmedi. Toptancısız eski girişlerin "İade edildi" butonu aynen duruyor.
+- **Yedek:** `[palet iadesi]` + `toptancı` + `adet` + `tutar`; toptancıda ve girişte `palet …` satırları yok. Eski `[palet verdim]`, `[palet iade]` ve palet satırları okunuyor; toptancı hareketleri artık girişlerden sonra işleniyor (eski iadenin tutarı girişlerden hesaplanıyor).
+- jsdom denemesi 59 adım geçti (yeni giriş, iade, sınır hataları, silme, kasa, yedek yaz-oku, yeniden yükleme, önceki sürüm verisi, eski yedek, iki şube). Tarayıcıda görsel kontrol yapılmadı.
+
+## 2026-10-29 15:55 — Toptancılar bütün şubelerde ortak
+- Toptancı listesi tek yerde: `boran.sups` = `[{id, ts, name, note, prods: [[marka, çeşit]], pals: [{id, name}]}]`. Ürün listesi adla tutuluyor (şubelerin ürün kimlikleri ayrı); şube açılınca `joinSups` eksik ürünleri o şubeye ekliyor (girişi olmadıkça görünmez).
+- Şubeye özel kalanlar: girişler, satışlar vb. ve toptancının hesap hareketleri (ödeme, palet verdim, palet parası) — şube kaydında `db.sups = [{id, pays, gives, refs}]`. Bellekte `db.sups` ikisinin birleşimi; `persist` ikiye bölüp yazıyor (`supShared`, `supLocal`). Yani toptancı hesabı ve palet hesabı şube şube.
+- İlk açılışta bir kez `shareSups`: bütün şubelerdeki toptancılar ortak listeye taşındı; aynı adlılar birleşti (girişlerin `sup`'u ve palet çeşidi kimlikleri yeniden bağlandı, ürün/palet listeleri birleşti).
+- Toptancı başka bir şubede girişi ya da hesap hareketi varsa silinemiyor (`supUsedIn`).
+- Yedekte "Hepsini değiştir" toptancıları silmiyor, sadece bu şubenin hareketlerini.
+- Şubeler penceresindeki açıklama güncellendi; şube satırından "N toptancı" kalktı.
+- jsdom denemesi 25 adım geçti (iki şubenin birleşmesi, şubeler arası görünürlük, ayrı hesaplar, yeni şube, silme engeli, yedekten değiştir, yeniden yükleme).
+
 ## 2026-10-29 15:35 — Giriş kartı: sadece fiyat kalemleri
 - Toptancılı giriş kartında "maliyete eklendi", "iadesi toptancının palet hesabında", "Toptancı hesabına: …" yazıları kalktı. Ürün satırlarının altında kısa kalem listesi (`.kal`): Mal bedeli, Nakliye, her ek gider, Boş palet (adet × çeşit (fiyat)), Toplam.
 - Toptancısız eski giriş kartları eskisi gibi (ödemeler, palet iadesi butonu).

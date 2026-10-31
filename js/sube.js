@@ -1,10 +1,10 @@
 'use strict';
-/* Şubeler: üstteki seçimle şubeler arası geçiş. Her şubenin ürünleri, toptancıları, girişleri, satışları ve yedeği ayrı */
+/* Şubeler: üstteki seçimle şubeler arası geçiş. Her şubenin ürünleri, girişleri, satışları ve yedeği ayrı; toptancılar ortak (store.js) */
 
 mountDialog(`
 <dialog id="dlgAcct" aria-labelledby="acT"><div class="sheet">
   <header><h2 id="acT">Şubeler</h2><button type="button" data-close>Kapat</button></header>
-  <p class="hint">Her şubenin kayıtları birbirinden bağımsızdır. Üstteki seçimle şubeler arasında geçersin. Adı kutuda değiştirince kaydedilir. Silinen şubenin kayıtları geri gelmez; silmeden önce o şubenin yedeğini al.</p>
+  <p class="hint">Her şubenin girişleri, satışları ve diğer kayıtları birbirinden bağımsızdır; toptancılar bütün şubelerde ortaktır (hesabı şube şube tutulur). Üstteki seçimle şubeler arasında geçersin. Adı kutuda değiştirince kaydedilir. Silinen şubenin kayıtları geri gelmez; silmeden önce o şubenin yedeğini al.</p>
   <div class="list" id="acList"></div>
   <div class="row"><input id="acNew" class="grow" autocomplete="off" placeholder="Yeni şube adı, ör. Merkez" aria-label="Yeni şube adı"><button type="button" class="primary" id="acAdd">Şube ekle</button></div>
   <p class="err" id="acErr" role="alert"></p>
@@ -18,7 +18,7 @@ function renderAcctList() {
   var l = accts();
   $('acList').innerHTML = l.map(function (a) {
     var cur = a.id === acct.id, d = cur ? db : acctData(a.id) || {};
-    var info = (d.sales || []).length + ' satış · ' + (d.ships || []).length + ' giriş · ' + (d.sups || []).length + ' toptancı';
+    var info = (d.sales || []).length + ' satış · ' + (d.ships || []).length + ' giriş';
     return '<div class="acr' + (cur ? ' on' : '') + '" data-acid="' + a.id + '"><input data-acname value="' + esc(a.name) + '" autocomplete="off" aria-label="Şube adı">'
       + '<small>' + (cur ? '<b>Açık</b> · ' : '') + info + '</small>'
       + '<div class="acts">' + (cur ? '' : '<button type="button" data-acopen>Aç</button><button type="button" class="danger" data-acdel>Sil</button>') + '</div></div>';

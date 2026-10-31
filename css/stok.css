@@ -68,17 +68,10 @@
 .catr span{font-weight:600;flex:1;min-width:0;overflow-wrap:anywhere}
 .catr small{font-size:.76rem;color:var(--muted);white-space:nowrap}
 .catr button{padding:5px 12px;font-size:.8rem}
-.ret{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:4px}
-.ret .sh{display:flex;justify-content:space-between;gap:8px}
-.ret .d{font-family:var(--mono);font-weight:700;font-size:.85rem}
-.ret b{font-family:var(--mono);color:var(--ok)}
-.ret small{font-size:.8rem;color:var(--muted)}
 
 .cardh{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cardh button{padding:7px 12px;font-size:.85rem}
 .supacts .addbtn{padding:13px 8px;font-size:.95rem}
-.ret.give{border-left-color:var(--accent)}
-.ret.give b{color:var(--accent)}
 .tbl td.mv{font-family:inherit;font-size:.82rem;white-space:normal;text-align:left}
 .tbl td.mv .lnk{font-size:.75rem}
 .kal{list-style:none;margin:0;padding:8px 10px;background:var(--tint);border-radius:10px;display:flex;flex-direction:column;gap:2px;font-size:.86rem}
@@ -89,5 +82,3 @@
 
 /* toptancı butonları: sığdığı kadar yan yana, masaüstünde tek satır */
 .supacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
-.givr{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.givr b small{font-weight:400;color:var(--muted)}

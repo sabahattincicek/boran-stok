@@ -12,15 +12,8 @@ mountDialog(`
   <div class="list" id="fLines"></div>
   <button type="button" id="fAddLine">+ Başka ürün ekle</button>
   <div class="fblk">
-    <div class="fh"><span>Boş palet</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının palet çeşitleri satır satır gelir; bu alımdaki palet başı fiyatı ve adedi yaz (tek çeşitte adet boşsa çeşitlerdeki palet sayısı alınır). Çeşit yoksa palet başı ya da toplamı yazman yeter. Bu para paletler geri verilince iade edilir, maliyete eklenmez ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
-    <div class="grid3" id="fDepOld">
-      <div class="f ro"><span>Palet sayısı</span><output id="fPalN">—</output></div>
-      <label class="f">Palet başı (₺)<input id="fDepPer" inputmode="decimal" autocomplete="off" placeholder="ör. 250"></label>
-      <label class="f">Toplam (₺)<input id="fDepTot" inputmode="decimal" autocomplete="off" placeholder="ör. 1.500"></label>
-    </div>
-    <div class="list" id="fPals"></div>
-    <p class="hint" id="fPalHint"></p>
-    <button type="button" class="dash" id="fAddPal">+ Palet çeşidi ekle</button>
+    <div class="fh"><span>Palet parası (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Bu girişin paletleri için yazılan toplam para. Maliyete eklenmez, toptancı hesabına yazılır; paletleri iade edince toptancının sayfasından "Palet iadesi" ile borçtan düşer. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
+    <input id="fDep" inputmode="decimal" autocomplete="off" placeholder="Boşsa palet parası yok" aria-label="Palet parası">
   </div>
   <div class="fblk">
     <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
@@ -32,7 +25,7 @@ mountDialog(`
     <button type="button" id="fAddCost">+ Ek gider ekle (hammaliye, yükleme…)</button>
   </div>
   <div class="fblk">
-    <div class="fh"><span>Girişin toplam fiyatı (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının verdiği tek fiyat. İçinde işaretli boş palet, nakliye ve ek giderler önce düşülür; kalan mal bedeli, fiyatı boş bırakılan çeşitlere koli sayısına göre paylaştırılır (hepsinde koli başı aynı olur). Boş bırakırsan çeşit fiyatları toplanır, işaretli giderler toptancı borcuna ayrıca eklenir.</span></span></div>
+    <div class="fh"><span>Girişin toplam fiyatı (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Toptancının verdiği tek fiyat. İçinde işaretli palet parası, nakliye ve ek giderler önce düşülür; kalan mal bedeli, fiyatı boş bırakılan çeşitlere koli sayısına göre paylaştırılır (hepsinde koli başı aynı olur). Boş bırakırsan çeşit fiyatları toplanır, işaretli giderler toptancı borcuna ayrıca eklenir.</span></span></div>
     <input id="fTotal" inputmode="decimal" autocomplete="off" placeholder="Toptancı tek fiyat verdiyse" aria-label="Girişin toplam fiyatı">
   </div>
   <div class="fblk" id="fPaidL">
@@ -51,8 +44,8 @@ mountDialog(`
 <datalist id="dlVar"></datalist>`);
 
 // Bir girişte birden fazla ürün olur; satırlar fRows'ta yazıldığı haliyle tutulur.
-// fSup: toptancı id'si, '' seçilmedi, '__new' yeni toptancı (toptancısız giriş yok). fPals: palet çeşidi satırları
-var editing = null, fRows = [], fSup = '', fPals = [];
+// fSup: toptancı id'si, '' seçilmedi, '__new' yeni toptancı (toptancısız giriş yok)
+var editing = null, fRows = [], fSup = '';
 function fillDatalists(brand) {
   var seen = {}, bk = fold(brand || '');
   $('dlBrand').innerHTML = brands().map(function (b) { return '<option value="' + esc(b.name) + '">'; }).join('');
@@ -69,20 +62,11 @@ function renderSupSel() {
   $('fSupNewL').hidden = fSup !== '__new';
   $('fSup').classList.toggle('bad', false);
 }
-// palet çeşidi satırları: girişte yazılanlar + toptancının diğer çeşitleri (adedi boş)
-function palRowsOf(t, lines) {
-  var out = (lines || []).map(function (l) { return { pal: l.pal || null, name: l.name, price: gnum(amt(l.price)), n: gnum(amt(l.n)) }; });
-  if (t) t.pals.forEach(function (p) { if (!out.some(function (o) { return o.pal === p.id; })) out.push({ pal: p.id, name: p.name, price: '', n: '' }); });
-  // palet fiyatı alımdan alıma değişir; son girişteki fiyat sadece öneri
-  out.forEach(function (o) { o.last = t && o.pal ? lastPalPrice(t, o.pal) : null; });
-  return out;
-}
-// toptancı değişince ürünler onun listesinden seçilir, palet çeşitleri onunkiler olur (elle eklenenler kalır)
+// toptancı değişince ürünler onun listesinden seçilir
 function setSup(v) {
   fSup = v;
   fRows.forEach(function (r) { r.bNew = r.vNew = false; });
-  fPals = fPals.filter(function (p) { return !p.pal; }).concat(palRowsOf(supOf(v)));
-  renderSupSel(); renderRows(); renderPals(); calc();
+  renderSupSel(); renderRows(); calc();
   if (v === '__new') $('fSupNew').focus();
 }
 function openEntry(shipId, preset, supId) {
@@ -93,9 +77,6 @@ function openEntry(shipId, preset, supId) {
   fSup = s ? s.sup || '' : supId ? supId : db.sups.length === 1 ? db.sups[0].id : '';
   $('fSupNew').value = '';
   renderSupSel();
-  // eski usul (çeşitsiz) yazılmış palet parası eski kutularda açılır
-  fPals = s && s.dep > 0 && !(s.depLines || []).length ? [] : palRowsOf(supOf(fSup), s && s.depLines);
-  renderPals();
   // palet sayısı koli ve palette koliden yeniden hesaplanır; paylaştırılmış fiyatlar boş gelir
   fRows = s
     ? linesOf(s.id).map(function (e) {
@@ -109,9 +90,8 @@ function openEntry(shipId, preset, supId) {
   $('fTotal').value = s && s.total != null ? gnum(amt(s.total)) : '';
   $('fNak').value = s && s.nak ? gnum(amt(s.nak)) : '';
   $('fNakIn').checked = !!(s && s.nakIn);
-  // palet başı yazılmışsa o, değilse toplam açılır; diğeri hesaplanır. Palet parası çoğunlukla toplamın içinde
-  $('fDepPer').value = s && s.dep > 0 && s.depPerIn ? gnum(amt(s.depPer)) : '';
-  $('fDepTot').value = s && s.dep > 0 && !s.depPerIn ? gnum(amt(s.dep)) : '';
+  // palet parası çoğunlukla toplamın içinde
+  $('fDep').value = s && s.dep > 0 ? gnum(amt(s.dep)) : '';
   $('fDepIn').checked = s && s.dep > 0 ? !!s.depIn : true;
   fCosts = s && s.costs ? s.costs.map(function (c) { return { desc: c.desc, amount: gnum(amt(c.amount)), inc: !!c.inc }; }) : [];
   renderCosts();
@@ -151,51 +131,10 @@ function readCosts() {
   r.inSum = (r.nakIn ? r.nak || 0 : 0) + r.list.reduce(function (t, c) { return t + (c.inc ? c.amount : 0); }, 0);
   return r;
 }
-function renderPals() {
-  $('fPals').innerHTML = fPals.map(function (p, i) {
-    return '<div class="prow" data-pi="' + i + '">'
-      + (p.pal ? '<div class="f ro"><span>Palet</span><output>' + esc(p.name) + '</output></div>'
-        : '<label class="f">Palet<input data-pf="name" value="' + esc(p.name) + '" autocomplete="off" placeholder="ör. Euro palet"></label>')
-      + '<label class="f">Bu alımda palet başı (₺)<input data-pf="price" value="' + esc(p.price) + '" inputmode="decimal" autocomplete="off" placeholder="' + (p.last != null ? 'son ' + fmt(p.last) : 'ör. 250') + '"></label>'
-      + '<label class="f">Adet<input data-pf="n" value="' + esc(p.n) + '" inputmode="decimal" autocomplete="off" placeholder="ör. 5"></label>'
-      + '<button type="button" data-prm="' + i + '" aria-label="' + esc(p.name || 'Palet') + ' satırını çıkar">×</button></div>';
-  }).join('');
-  $('fDepOld').hidden = fPals.length > 0;
+function readDep() {
+  var raw = $('fDep').value.trim(), tot = num(raw);
+  return { tot: tot, inc: $('fDepIn').checked, err: raw && tot == null ? 'Palet parasını sayı olarak yaz, ör. 1500.' : '' };
 }
-// Boş palet parası. Palet çeşidi satırları varsa: adet × palet başı (tek satırda adet boşsa çeşitlerdeki palet sayısı).
-// Yoksa eski usul: palet başı ya da toplam; boş olan palet sayısından hesaplanır
-function readDep(pal) {
-  if (fPals.length) {
-    var r = { per: null, tot: null, perIn: false, inc: $('fDepIn').checked, err: '', lines: [], n: 0 }, sum = 0, one = fPals.length === 1;
-    fPals.forEach(function (p, i) {
-      var name = clean(p.name), pr = num(p.price), nRaw = String(p.n).trim(), n = num(nRaw);
-      if (!nRaw) { if (!one || !pal || !String(p.price).trim()) return; n = pal; r.autoN = true; }
-      if (n == null) r.err = r.err || (name || (i + 1) + '. palet') + ' için adedi sayı olarak yaz.';
-      else if (!name) r.err = r.err || 'Palet çeşidinin adını yaz.';
-      else if (pr == null) r.err = r.err || name + ' için palet başı fiyatı yaz.';
-      else if (n > 0) { r.lines.push({ pal: p.pal, name: name, price: pr, n: n }); sum += n * pr; r.n += n; }
-    });
-    if (r.lines.length) {
-      r.tot = Math.round(sum * 100) / 100;
-      r.per = r.lines.every(function (l) { return l.price === r.lines[0].price; }) ? r.lines[0].price : null;
-    }
-    return r;
-  }
-  var perRaw = $('fDepPer').value.trim(), totRaw = $('fDepTot').value.trim(), per = num(perRaw), tot = num(totRaw), r = { per: null, tot: null, perIn: false, inc: $('fDepIn').checked, err: '' };
-  if (perRaw && (per == null || per < 0)) { r.err = 'Palet başı palet parasını sayı olarak yaz, ör. 250.'; return r; }
-  if (totRaw && (tot == null || tot < 0)) { r.err = 'Toplam palet parasını sayı olarak yaz, ör. 1500.'; return r; }
-  if (perRaw && totRaw) {
-    if (pal && Math.abs(per * pal - tot) > 0.004) r.err = fmt(pal) + ' palet × ' + money(per) + ' = ' + money(per * pal) + ', toplam palet parasıyla (' + money(tot) + ') tutmuyor. Birini boş bırak.';
-    r.per = per; r.tot = tot; r.perIn = true;
-  } else if (perRaw) {
-    if (!pal) r.err = 'Palet sayısı bilinmiyor; palet parasının toplamını yaz ya da çeşitlerde palet sayısını gir.';
-    else { r.per = per; r.tot = Math.round(per * pal * 100) / 100; r.perIn = true; }
-  } else if (totRaw) {
-    r.tot = tot; r.per = pal ? tot / pal : null;
-  }
-  return r;
-}
-function palCount(rows) { return rows.reduce(function (t, f) { return t + (f.palet && !f.bad ? f.palet : 0); }, 0); }
 var PH = { koli: 'ör. 216', kpp: 'ör. 72', palet: 'ör. 3', total: 'boşsa toplamdan pay' };
 // seçili toptancının ürün listesi (markalara göre); listesi boşsa ya da toptancı yoksa marka ve çeşit yazılır
 function supCat() { var t = supOf(fSup); return t && t.pids.length ? supBrands(t) : null; }
@@ -263,11 +202,11 @@ function spread(lines, grand) {
   });
   return { lines: out };
 }
-// formun tamamı: satırlar, giderler, boş palet; toplam fiyatın içindekiler düşülünce kalan mal bedeli paylaştırılır
+// formun tamamı: satırlar, giderler, palet parası; toplam fiyatın içindekiler düşülünce kalan mal bedeli paylaştırılır
 function readForm() {
   var F = { rows: fRows.map(readRow), grandRaw: $('fTotal').value.trim() };
-  F.grand = num(F.grandRaw); F.pal = palCount(F.rows);
-  F.xc = readCosts(); F.dp = readDep(F.pal);
+  F.grand = num(F.grandRaw);
+  F.xc = readCosts(); F.dp = readDep();
   F.inSum = F.xc.inSum + (F.dp.inc && F.dp.tot ? F.dp.tot : 0);
   F.goods = F.grand == null ? null : Math.round((F.grand - F.inSum) * 100) / 100;
   if (F.goods != null && F.goods < -0.004) F.inErr = 'Toplam fiyatın içinde işaretlenenler (' + money(F.inSum) + '), toplam fiyattan (' + money(F.grand) + ') fazla.';
@@ -276,27 +215,13 @@ function readForm() {
   F.xs = extraShares(F.rows, F.xc.sum);
   F.total = F.sp.lines.reduce(function (t, l) { return t + (l.total || 0); }, 0); // mal bedeli
   F.debt = F.total + F.inSum; // toptancısız girişte toptancıya
-  F.due = F.total + F.xc.sum + (F.dp.tot || 0); // toptancı hesabına: mal + nakliye/ek gider + palet
+  F.due = F.total + F.xc.sum + (F.dp.tot || 0); // toptancı hesabına: mal + nakliye/ek gider + palet parası
   return F;
 }
 function bad(el, on) { if (el) el.classList.toggle('bad', !!on || (!!el.value.trim() && num(el.value) == null)); }
 // her satırın altındaki hesap, kutuların kırmızısı ve en alttaki girişin özeti
 function calc() {
   var F = readForm(), rows = F.rows, sp = F.sp, xc = F.xc, xs = F.xs, dp = F.dp, koliSum = 0, priced = 0, sum = 0;
-  $('fPalN').textContent = F.pal ? fmt(F.pal) : '—';
-  $('fDepPer').placeholder = !$('fDepPer').value.trim() && dp.per != null ? '= ' + fmt(Math.round(dp.per * 100) / 100) : 'ör. 250';
-  $('fDepTot').placeholder = !$('fDepTot').value.trim() && dp.tot != null ? '= ' + fmt(dp.tot) : 'ör. 1.500';
-  // palet çeşidi satırları: tek satırda adet boşsa çeşitlerdeki palet sayısı; hatalı kutular kırmızı
-  document.querySelectorAll('#fPals .prow').forEach(function (el) {
-    var p = fPals[+el.dataset.pi], n = el.querySelector('[data-pf="n"]'), pr = el.querySelector('[data-pf="price"]');
-    n.placeholder = dp.autoN ? '= ' + fmt(F.pal) : 'ör. 5';
-    bad(n); bad(pr, String(p.n).trim() && !String(p.price).trim());
-  });
-  $('fPalHint').innerHTML = fPals.length
-    ? (F.pal ? 'Çeşitlerden hesaplanan ' + fmt(F.pal) + ' palet' : 'Çeşitlerde palet sayısı yok')
-      + (dp.n ? ' · yazılan ' + fmt(dp.n) + ' boş palet' : '') + (dp.tot ? ' · boş palet parası <b>' + money(dp.tot) + '</b>' : '')
-      + (dp.n && F.pal && Math.abs(dp.n - F.pal) > 0.004 ? ' <span class="warn">(palet sayıları farklı)</span>' : '')
-    : '';
   var tSup = supOf(fSup);
   document.querySelectorAll('#fLines .eline').forEach(function (el) {
     var i = +el.dataset.i, f = rows[i], t = sp.lines[i], out = [];
@@ -326,7 +251,7 @@ function calc() {
     if (t.total != null) { sum += t.total; priced++; }
   });
   bad($('fTotal'), sp.err || F.inErr);
-  bad($('fDepPer'), dp.err); bad($('fDepTot'), dp.err && $('fDepTot').value.trim());
+  bad($('fDep'), dp.err);
   bad($('fNak'));
   document.querySelectorAll('#fCosts [data-c="amount"]').forEach(function (x) { bad(x); });
   var paid = num($('fPaid').value);
@@ -334,10 +259,10 @@ function calc() {
   // genel özet: çeşit tablosu, palet, mal bedeli, giderler, toplam ve ortalama koli başı maliyet
   var all = [];
   if (koliSum) {
-    var palSum = 0, noPal = 0, pKoli = 0, pCost = 0, trs = '';
+    var palN = 0, noPal = 0, pKoli = 0, pCost = 0, trs = '';
     rows.forEach(function (f, i) {
       var t = sp.lines[i], k = f.koli || 0, c = t.total != null ? t.total + xs[i] : null;
-      if (f.palet && !f.bad) palSum += f.palet; else if (k) noPal++;
+      if (f.palet && !f.bad) palN += f.palet; else if (k) noPal++;
       if (c != null && k) { pKoli += k; pCost += c; }
       trs += '<tr><td>' + esc(f.brand && f.variety ? f.brand + ' ' + f.variety : (i + 1) + '. ürün') + '</td><td>' + fmt(k) + '</td>'
         + '<td>' + (c != null ? money(c) : '—') + '</td><td>' + (c != null && k ? money(c / k) : '—') + '</td></tr>';
@@ -346,8 +271,8 @@ function calc() {
       all.push('<div class="tbl"><table><thead><tr><th>Çeşit</th><th>Koli</th><th>Maliyet</th><th>Koli başı</th></tr></thead><tbody>' + trs + '</tbody>'
         + '<tfoot><tr><td>Toplam</td><td>' + fmt(koliSum) + '</td><td>' + (pKoli ? money(pCost) : '—') + '</td><td>' + (pKoli ? money(pCost / pKoli) : '—') + '</td></tr></tfoot></table></div>');
     }
-    all.push('<span><b>' + rows.length + ' çeşit · ' + fmt(koliSum) + ' koli' + (palSum ? ' · ' + fmt(palSum) + ' palet' : '') + '</b>'
-      + (palSum && noPal ? ' (' + noPal + ' çeşidin paleti bilinmiyor)' : '') + '</span>');
+    all.push('<span><b>' + rows.length + ' çeşit · ' + fmt(koliSum) + ' koli' + (palN ? ' · ' + fmt(palN) + ' palet' : '') + '</b>'
+      + (palN && noPal ? ' (' + noPal + ' çeşidin paleti bilinmiyor)' : '') + '</span>');
     if (F.grand != null && F.inSum && !F.inErr) all.push('<span class="n">Toplam fiyat ' + money(F.grand) + ' − içindekiler ' + money(F.inSum) + ' = mal bedeli <b>' + money(F.goods) + '</b></span>');
     else if (priced) all.push('<span class="n">Mal bedeli <b>' + money(sum) + '</b></span>');
     if (xc.sum) {
@@ -355,7 +280,7 @@ function calc() {
       all.push('<span class="n">Nakliye + ek gider <b>' + money(xc.sum) + '</b> <small>(maliyete eklenir'
         + (xin ? '; ' + money(xin) + ' toplamın içinde' : '') + (xout ? '; ' + money(xout) + ' ayrı ödendi' : '') + ')</small></span>');
     }
-    if (dp.tot) all.push('<span class="n">Boş palet parası <b>' + money(dp.tot) + '</b> <small>(' + ((dp.lines || []).length ? depLinesTxt(dp.lines) + '; ' : '') + (dp.inc ? 'toplamın içinde' : 'ayrı ödendi') + '; paletler verilince iade edilir, maliyete eklenmez)</small></span>');
+    if (dp.tot) all.push('<span class="n">Palet parası <b>' + money(dp.tot) + '</b> <small>(' + (palN ? fmt(palN) + ' palet, palet başı ' + money(dp.tot / palN) + '; ' : '') + (dp.inc ? 'toplamın içinde' : 'toplamın dışında') + '; maliyete eklenmez)</small></span>');
     if (pKoli) {
       all.push('<span class="n">Toplam maliyet <b>' + money(pCost) + '</b></span>');
       all.push('<span class="n">Ortalama koli başı maliyet <b>' + money(pCost / pKoli) + '</b></span>');
@@ -419,12 +344,7 @@ function saveEntry() {
   s.total = grandRaw ? grand : null;
   s.nak = xc.nak || null; s.nakIn = !!(xc.nak && xc.nakIn); s.costs = xc.list;
   s.sup = sup ? sup.id : null;
-  s.dep = dp.tot || null; s.depIn = !!(dp.tot && dp.inc); s.depPer = dp.tot ? dp.per : null; s.depPerIn = !!(dp.tot && dp.perIn);
-  // palet çeşitleri: elle eklenen yeni çeşit toptancının palet listesine de eklenir
-  s.depLines = dp.tot && (dp.lines || []).length ? dp.lines.map(function (l) {
-    var pal = l.pal || (sup ? ensurePal(sup, l.name).id : null);
-    return { pal: pal, name: l.name, price: l.price, n: l.n };
-  }) : null;
+  s.dep = dp.tot || null; s.depIn = !!(dp.tot && dp.inc);
   if (!s.dep) s.depBack = null;
   var xs = F.xs;
   if (isNew && paid > 0) (sup ? sup.pays : s.pays).push({ id: 'o' + uid(), ts: s.ts, date: date, amount: paid, note: sup ? 'giriş günü' : '' });
@@ -489,23 +409,11 @@ $('fLines').addEventListener('click', function (ev) {
   var b = ev.target.closest('[data-lrm]'); if (!b) return;
   fRows.splice(+b.dataset.lrm, 1); renderRows(); calc();
 });
-$('fPals').addEventListener('input', function (ev) {
-  var k = ev.target.dataset.pf, el = ev.target.closest('.prow'); if (!k || !el) return;
-  fPals[+el.dataset.pi][k] = ev.target.value; $('fErr').textContent = ''; calc();
-});
-$('fPals').addEventListener('click', function (ev) {
-  var b = ev.target.closest('[data-prm]'); if (!b) return;
-  fPals.splice(+b.dataset.prm, 1); renderPals(); calc();
-});
-$('fAddPal').addEventListener('click', function () {
-  fPals.push({ pal: null, name: '', price: '', n: '' }); renderPals(); calc();
-  $('fPals').lastElementChild.querySelector('[data-pf="name"]').focus();
-});
 $('fAddLine').addEventListener('click', addRow);
 $('fPaid').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
 $('fTotal').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
 $('fNak').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
-['fDepPer', 'fDepTot', 'fDepIn', 'fNakIn'].forEach(function (id) { $(id).addEventListener(/In$/.test(id) ? 'change' : 'input', function () { $('fErr').textContent = ''; calc(); }); });
+['fDep', 'fDepIn', 'fNakIn'].forEach(function (id) { $(id).addEventListener(/In$/.test(id) ? 'change' : 'input', function () { $('fErr').textContent = ''; calc(); }); });
 $('dlgEntry').addEventListener('input', liveNum, true);
 $('fCosts').addEventListener('input', function (ev) {
   var k = ev.target.dataset.c, el = ev.target.closest('.xrow'); if (!k || !el) return;

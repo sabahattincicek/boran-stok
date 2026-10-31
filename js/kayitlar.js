@@ -59,7 +59,7 @@ function renderRecords() {
     if (inPer(s.date, p)) extra += shipExtraOut(s);
     if (s.dep > 0 && !s.depIn && inPer(s.date, p)) dep -= s.dep;
   });
-  // toptancı hesabına ödemeler ve boş paletler için geri alınan para
+  // toptancı hesabına ödemeler; palet iadesi kasaya girmez, borçtan düşer (t.refs: elden alınmış eski kayıtlar)
   db.sups.forEach(function (t) {
     t.pays.forEach(function (x) { if (inPer(x.date, p)) supPaid += x.amount; });
     t.refs.forEach(function (x) { if (inPer(x.date, p)) dep += x.amount; });
@@ -107,7 +107,7 @@ function renderRecords() {
   // iadesi beklenen palet parası: toptancısız girişler tek tek, toptancılı olanlar toptancının palet hesabından
   var depWait = depWaiting(), depN = 0, depAny = false;
   db.ships.forEach(function (s) { if (s.dep > 0) depAny = true; if (depOpen(s)) depN++; });
-  db.sups.forEach(function (t) { if (palLedger(t).open > 0.004) depN++; });
+  db.sups.forEach(function (t) { if (palSum(t).open > 0.004) depN++; });
   Object.keys(db.products).forEach(function (id) {
     var q = Math.max(0, stockOf(id)), c = unitCost(ct, id, today());
     if (!q) return;
@@ -118,7 +118,7 @@ function renderRecords() {
     + kpi('Toptancıya borç', money(debt), '', debt > 0.004 ? 'bad' : '')
     + kpi('Elimdeki stok değeri', money(val), fmt(valKoli) + ' koli, alış fiyatıyla' + (valUnk ? ' · ' + fmt(valUnk) + ' koli fiyatsız' : ''))
     + kpi('Toplam ciro', money(allCiro), db.sales.length + ' satış')
-    + (depAny ? kpi('İadesi beklenen palet parası', money(depWait), depN ? depN + ' giriş / toptancıda boş palet geri verilmedi' : 'hepsi iade edildi', depWait > 0.004 ? 'warn' : 'ok') : '');
+    + (depAny ? kpi('İadesi beklenen palet parası', money(depWait), depN ? depN + ' giriş / toptancıda palet iade edilmedi' : 'hepsi iade edildi', depWait > 0.004 ? 'warn' : 'ok') : '');
 
   renderRecordList(p);
 }

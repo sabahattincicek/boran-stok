@@ -45,14 +45,13 @@ function byDayBlocks(list, L, write) {
 }
 function exportText() {
   var L = ['BORAN STOK SATIŞ YEDEĞİ', 'Şube: ' + acct.name, 'Oluşturma: ' + dateTR(today()) + ' ' + nowHM(), '', '', '', ''];
-  // toptancılar: ürün listesi ve boş palet çeşitleri
+  // toptancılar: ürün listesi
   if (db.sups.length) {
     L.push('== TOPTANCILAR ==', '');
     supsSorted().forEach(function (t, i) {
       if (i) L.push('');
       L.push('[toptancı]', t.name);
       t.pids.forEach(function (id) { var p = db.products[id]; if (p) L.push('ürün ' + p.brand + ' / ' + p.variety); });
-      t.pals.forEach(function (p) { L.push('palet ' + p.name); });
       if (t.note) L.push('(' + t.note + ')');
     });
     L.push('', '', '', '');
@@ -69,23 +68,22 @@ function exportText() {
     if (s.total != null) L.push('giriş toplamı ' + amt(s.total) + ' tl');
     if (s.nak) L.push('nakliye ' + amt(s.nak) + ' tl' + (s.nakIn ? ' (toplamda)' : ''));
     if (s.dep > 0) L.push('boş palet ' + amt(s.dep) + ' tl' + (s.depIn ? ' (toplamda)' : '') + (s.depBack ? ' / iade ' + dateTR(s.depBack) : ''));
-    (s.depLines || []).forEach(function (l) { L.push('palet ' + l.name + ' ' + amt(l.n) + ' x ' + amt(l.price) + ' tl'); });
     (s.costs || []).forEach(function (c) { L.push('ek gider ' + amt(c.amount) + ' tl' + (c.inc ? ' (toplamda)' : '') + ': ' + c.desc); });
     s.pays.slice().sort(function (a, b) { return cmp(a.date + ' ' + a.ts, b.date + ' ' + b.ts); })
       .forEach(function (x) { L.push('ödeme ' + dateTR(x.date) + ' ' + amt(x.amount) + ' tl' + (x.note ? ': ' + x.note : '')); });
   });
-  // toptancı hesabı: ödemeler, geri verilen boş paletler, geri alınan palet parası
+  // toptancı hesabı: ödemeler, palet iadeleri, elden alınmış palet parası
   var mv = [];
   db.sups.forEach(function (t) {
     t.pays.forEach(function (x) { mv.push({ k: 'odeme', date: x.date, ts: x.ts, time: '', note: x.note, sup: t.name, amount: x.amount }); });
-    t.gives.forEach(function (x) { mv.push({ k: 'palet verdim', date: x.date, ts: x.ts, time: '', note: x.note, sup: t.name, lines: x.lines }); });
+    t.backs.forEach(function (x) { mv.push({ k: 'palet iadesi', date: x.date, ts: x.ts, time: '', note: x.note, sup: t.name, n: x.n, amount: x.amount }); });
     t.refs.forEach(function (x) { mv.push({ k: 'palet parası', date: x.date, ts: x.ts, time: '', note: x.note, sup: t.name, amount: x.amount }); });
   });
   if (mv.length) {
     L.push('', '', '', '', '== TOPTANCI HAREKETLERİ ==', '');
     byDayBlocks(mv, L, function (x) {
       L.push('[' + (x.k === 'odeme' ? 'ödeme' : x.k) + ']', 'toptancı ' + x.sup);
-      (x.lines || []).forEach(function (l) { L.push('palet ' + l.name + ' ' + amt(l.n) + ' adet'); });
+      if (x.n != null) L.push('adet ' + amt(x.n));
       if (x.amount != null) L.push('tutar ' + amt(x.amount) + ' tl');
     });
   }
@@ -147,14 +145,14 @@ function parseBackup(text) {
     if ((m = t.match(/^(\d{1,2}):(\d{2})$/))) { time = pad2(m[1]) + ':' + m[2]; cur = null; return; }
     if (!section && (m = t.match(/^[şŞsS]ube:\s*(.+)$/))) { acctName = clean(m[1]); return; }
     if (f === '[toptanci]' && inSec('toptanci')) { cur = { kind: 't', name: '', pids: [], pals: [], note: [] }; sups.push(cur); return; }
-    // toptancı hareketleri; eski "[palet iade]" kaydı hem palet verdim hem para iadesi sayılır
-    if ((m = f.match(/^\[(odeme|palet verdim|palet parasi|palet iade)\]$/)) && (inSec('toptanci hareket') || inSec('palet'))) {
-      cur = { kind: 'r', type: m[1], date: date, time: time, sup: '', lines: [], amount: null, note: [] }; rets.push(cur); time = ''; return;
+    // toptancı hareketleri; eski yedeklerde "[palet verdim]" palet iadesi, "[palet iade]" hem palet iadesi hem elden para sayılır
+    if ((m = f.match(/^\[(odeme|palet iadesi|palet verdim|palet parasi|palet iade)\]$/)) && (inSec('toptanci hareket') || inSec('palet'))) {
+      cur = { kind: 'r', type: m[1], date: date, time: time, sup: '', n: 0, amount: null, note: [] }; rets.push(cur); time = ''; return;
     }
     if (f === '[sayim]' && inSec('sayim')) { cur = { kind: 'c', date: date, time: time, brand: '', variety: '', koli: null }; counts.push(cur); time = ''; return; }
     if (f === '[odenmedi]' && inSec('satis')) { cur = lastSale = { kind: 's', date: date, time: time, pay: 'nakit', items: [], paid: 0, note: [], cols: [] }; sales.push(cur); time = ''; return; }
     if ((m = f.match(/^\[(gelir|gider)\]$/)) && inSec('gelir')) { cur = { kind: 'g', type: m[1], date: date, time: time, desc: '', amount: null, note: [] }; cash.push(cur); time = ''; return; }
-    if (f === '[giris]' && inSec('stok')) { cur = { kind: 'e', date: date, time: time, sup: '', lines: [], pays: [], paid: null, total: null, nak: null, dep: null, depBack: null, depLines: [], costs: [], note: [] }; ents.push(cur); time = ''; return; }
+    if (f === '[giris]' && inSec('stok')) { cur = { kind: 'e', date: date, time: time, sup: '', lines: [], pays: [], paid: null, total: null, nak: null, dep: null, depBack: null, costs: [], note: [] }; ents.push(cur); time = ''; return; }
     if ((m = f.match(/^\[(nakit|havale)\]$/)) && inSec('satis')) { cur = lastSale = { kind: 's', date: date, time: time, pay: m[1], items: [], paid: null, note: [], cols: [] }; sales.push(cur); time = ''; return; }
     // eski defterde boş satırdan sonra tek başına kalan not: o günün bir önceki satışına eklenir
     if (!cur && lastSale && (m = t.match(/^\((.*)\)$/))) { if (m[1].trim()) lastSale.note.push(m[1].trim()); return; }
@@ -166,17 +164,14 @@ function parseBackup(text) {
       cur.dep = num(m[1]); cur.depIn = !!m[2]; cur.depBack = m[3] ? m[5] + '-' + pad2(m[4]) + '-' + pad2(m[3]) : null; return;
     }
     if (cur.kind === 'e' && (m = t.match(/^ek gider\s+([\d.,]+)\s*(?:tl|₺)?\s*(\(toplamda\))?\s*(?::\s*(.*))?$/i))) { cur.costs.push({ desc: clean(m[3] || '') || 'Ek gider', amount: num(m[1]), inc: !!m[2] }); return; }
-    // toptancı ve boş palet satırları (giriş, palet iadesi, toptancı bilgisi)
+    // toptancı satırı (giriş, toptancı hareketi); eski yedeklerin palet çeşidi satırları
     if ((cur.kind === 'e' || cur.kind === 'r') && (m = t.match(/^toptanc[ıi]\s+(.+)$/i))) { cur.sup = clean(m[1]); return; }
-    if ((cur.kind === 'e' || cur.kind === 'r') && (m = t.match(/^palet\s+(.+?)\s+([\d.,]+)\s*[x×]\s*([\d.,]+)\s*(?:tl|₺)?$/i))) {
-      (cur.kind === 'e' ? cur.depLines : cur.lines).push({ name: clean(m[1]), n: num(m[2]), price: num(m[3]) }); return;
-    }
-    if (cur.kind === 'r' && (m = t.match(/^palet\s+(.+?)\s+([\d.,]+)\s*adet$/i))) { cur.lines.push({ name: clean(m[1]), n: num(m[2]) }); return; }
+    if ((cur.kind === 'e' || cur.kind === 'r') && (m = t.match(/^palet\s+.+?\s+([\d.,]+)\s*(?:[x×]\s*[\d.,]+\s*(?:tl|₺)?|adet)$/i))) { if (cur.kind === 'r') cur.n += num(m[1]); return; }
+    if (cur.kind === 'r' && (m = f.match(/^adet\s+([\d.,]+)/))) { cur.n = num(m[1]); return; }
     if (cur.kind === 'r' && (m = f.match(/^tutar\s+([\d.,]+)/))) { cur.amount = num(m[1]); return; }
     if (cur.kind === 'r') { cur.bad = true; return; }
     if (cur.kind === 't') {
       if ((m = t.match(/^[üÜuU]r[üÜuU]n\s+(.+?)\s+\/\s+(.+)$/))) cur.pids.push({ brand: clean(m[1]), variety: clean(m[2]) });
-      else if ((m = t.match(/^palet\s+(.+?)(?:\s+[\d.,]+\s*(?:tl|₺)?)?$/i))) cur.pals.push({ name: clean(m[1]) });
       else if (!cur.name) cur.name = clean(t);
       return;
     }
@@ -230,14 +225,12 @@ function parseBackup(text) {
     e.lines.forEach(function (l, i) { l.extra = xs[i]; });
     if (e.paid > 0 && e.lines.some(function (l) { return l.total != null; })) e.pays.push({ date: e.date, amount: e.paid });
     e.pays = e.pays.filter(function (x) { return x.amount > 0; });
-    e.depLines = e.dep > 0 ? e.depLines.filter(function (l) { return l.n > 0 && l.price != null; }) : [];
   });
   sups = sups.filter(function (t) {
     if (!t.name) bad++; return !!t.name;
   });
   rets = rets.filter(function (r) {
-    r.lines = r.lines.filter(function (l) { return l.n > 0; });
-    var ok = r.date && !r.bad && r.sup && (r.type === 'palet verdim' ? r.lines.length : r.amount > 0); if (!ok) bad++; return ok;
+    var ok = r.date && !r.bad && r.sup && (r.type === 'palet iadesi' || r.type === 'palet verdim' ? r.n > 0 : r.amount > 0); if (!ok) bad++; return ok;
   });
   sales = sales.filter(function (s) {
     var ok = s.date && !s.bad && s.items.length && s.items.every(function (i) { return i.n > 0 && i.price != null; });
@@ -247,15 +240,14 @@ function parseBackup(text) {
   cash = cash.filter(function (x) { var ok = x.date && x.desc && x.amount > 0; if (!ok) bad++; return ok; });
   return { entries: ents, sales: sales, counts: counts, cash: cash, sups: sups, rets: rets, acct: acctName, bad: bad };
 }
-function shipSig(date, time, note, total, nak, costs, lines, pays, dep, depBack, nakIn, depIn, sup, depLines) {
+function shipSig(date, time, note, total, nak, costs, lines, pays, dep, depBack, nakIn, depIn, sup) {
   return ['e', date, time || '', note || '', total == null ? '' : total, nak || '', nakIn ? 'i' : '', dep || '', depIn ? 'i' : '', depBack || '', fold(sup || '')]
-    .concat((depLines || []).map(function (l) { return 'p:' + fold(l.name) + ':' + l.n + ':' + l.price; }).sort())
     .concat((costs || []).map(function (c) { return 'x:' + fold(c.desc) + ':' + c.amount + (c.inc ? ':i' : ''); }).sort())
     .concat(lines.map(function (l) { return pkey(l.brand, l.variety) + ':' + l.koli + ':' + (l.kpp || '') + ':' + l.total; }).sort())
     .concat(pays.map(function (x) { return 'o:' + x.date + ':' + x.amount + ':' + (x.note || ''); }).sort()).join('|');
 }
-function movSig(type, date, sup, amount, note, lines) {
-  return ['r', type, date, fold(sup), amount == null ? '' : amount, note || ''].concat((lines || []).map(function (l) { return fold(l.name) + ':' + l.n; }).sort()).join('|');
+function movSig(type, date, sup, amount, note, n) {
+  return ['r', type, date, fold(sup), amount == null ? '' : amount, note || '', n == null ? '' : n].join('|');
 }
 function cntSig(date, time, brand, variety, koli) { return ['c', date, time || '', pkey(brand, variety), koli].join('|'); }
 function cashSig(date, time, type, desc, amount, note) { return ['g', date, time || '', type, fold(desc), amount, note || ''].join('|'); }
@@ -283,41 +275,35 @@ function readImport() {
 }
 function applyImport(replace) {
   if (!parsed || !(parsed.entries.length + parsed.sales.length + parsed.counts.length + parsed.cash.length + parsed.sups.length + parsed.rets.length)) return;
-  if (replace) db = emptyDb();
+  if (replace) { db = emptyDb(); joinSups(); } // toptancılar ortak, silinmez; sadece bu şubedeki hareketleri gider
   var have = {}, added = 0, skipped = 0, base = Date.now();
-  // toptancılar adıyla eşleşir; eksik ürün ve palet çeşitleri eklenir
+  // toptancılar adıyla eşleşir; eksik ürünler eklenir
   parsed.sups.forEach(function (x) {
     var t = findSup(x.name);
     if (t) skipped++; else added++;
     t = ensureSup(x.name);
     if (!t.note && x.note.length) t.note = x.note.join(' ');
     x.pids.forEach(function (p) { supAddPid(t, ensureProduct(p.brand, p.variety)); });
-    x.pals.forEach(function (p) { ensurePal(t, p.name); });
   });
-  function palOf(t, l) { return { pal: t ? ensurePal(t, l.name).id : null, name: l.name, price: l.price, n: l.n }; }
   // mevcut kayıtlar adetleriyle sayılır; dosyadaki aynı iki satış ayrı ayrı eklenir
   function seen(k) { have[k] = (have[k] || 0) + 1; }
   db.ships.forEach(function (s) {
-    seen(shipSig(s.date, s.time, s.note, s.total, s.nak, s.costs, linesOf(s.id).map(function (e) { var p = db.products[e.pid]; return { brand: p.brand, variety: p.variety, koli: e.koli, kpp: e.kpp, total: e.total }; }), s.pays, s.dep, s.depBack, s.nakIn, s.depIn, supName(s.sup), s.depLines));
+    seen(shipSig(s.date, s.time, s.note, s.total, s.nak, s.costs, linesOf(s.id).map(function (e) { var p = db.products[e.pid]; return { brand: p.brand, variety: p.variety, koli: e.koli, kpp: e.kpp, total: e.total }; }), s.pays, s.dep, s.depBack, s.nakIn, s.depIn, supName(s.sup)));
   });
   db.sups.forEach(function (t) {
     t.pays.forEach(function (x) { seen(movSig('odeme', x.date, t.name, x.amount, x.note)); });
-    t.gives.forEach(function (x) { seen(movSig('palet verdim', x.date, t.name, null, x.note, x.lines)); });
+    t.backs.forEach(function (x) { seen(movSig('palet iadesi', x.date, t.name, x.amount, x.note, x.n)); });
     t.refs.forEach(function (x) { seen(movSig('palet parasi', x.date, t.name, x.amount, x.note)); });
   });
+  // eski yedekteki iadenin tutarı yok (ya da elden alınan paradır): ortalama palet fiyatından
   function addMov(type, x, i, t, note) {
-    var sig = type === 'palet verdim' ? movSig(type, x.date, x.sup, null, note, x.lines) : movSig(type, x.date, x.sup, x.amount, note);
+    var back = type === 'palet iadesi', a = back && x.type !== type ? palAmount(t, x.n) : x.amount;
+    var sig = movSig(type, x.date, x.sup, a, note, back ? x.n : null);
     if (have[sig] > 0) { have[sig]--; skipped++; return; }
     added++;
-    var o = { id: uid() + i, ts: base + i, date: x.date, note: note };
-    if (type === 'palet verdim') { o.lines = x.lines.map(function (l) { return { pal: ensurePal(t, l.name).id, name: l.name, n: l.n }; }); t.gives.push(o); }
-    else { o.amount = x.amount; (type === 'odeme' ? t.pays : t.refs).push(o); }
+    var o = { id: uid() + i, ts: base + i, date: x.date, amount: a, note: note };
+    if (back) { o.n = x.n; t.backs.push(o); } else (type === 'odeme' ? t.pays : t.refs).push(o);
   }
-  parsed.rets.forEach(function (x, i) {
-    var note = x.note.join(' '), t = ensureSup(x.sup);
-    if (x.type === 'palet iade') { if (x.lines.length) addMov('palet verdim', x, i, t, note); addMov('palet parasi', x, i, t, note); }
-    else addMov(x.type, x, i, t, note);
-  });
   db.sales.forEach(function (s) {
     seen(saleSig(s.date, s.time, s.pay, s.paid, s.note, s.items.map(function (i) { var p = db.products[i.pid]; return { brand: p.brand, variety: p.variety, n: i.n, price: i.price }; })));
   });
@@ -336,13 +322,12 @@ function applyImport(replace) {
     db.counts.push({ id: 'c' + uid() + i, ts: base + i, pid: ensureProduct(x.brand, x.variety), date: x.date, time: x.time || '', koli: x.koli });
   });
   parsed.entries.forEach(function (x, i) {
-    var note = x.note.join('\n'), sig = shipSig(x.date, x.time, note, x.total, x.nak, x.costs, x.lines, x.pays, x.dep, x.depBack, x.nakIn, x.depIn, x.sup, x.depLines);
+    var note = x.note.join('\n'), sig = shipSig(x.date, x.time, note, x.total, x.nak, x.costs, x.lines, x.pays, x.dep, x.depBack, x.nakIn, x.depIn, x.sup);
     if (have[sig] > 0) { have[sig]--; skipped++; return; }
     added++;
     var t = x.sup ? ensureSup(x.sup) : null;
     var s = { id: 'h' + uid() + i, ts: base + i, date: x.date, time: x.time || '', note: note, total: x.total, nak: x.nak || null, nakIn: !!(x.nak && x.nakIn), costs: x.costs,
-      sup: t ? t.id : null, dep: x.dep || null, depIn: !!(x.dep && x.depIn), depBack: x.dep ? x.depBack : null, depPerIn: false,
-      depLines: x.depLines.length ? x.depLines.map(function (l) { return palOf(t, l); }) : null,
+      sup: t ? t.id : null, dep: x.dep || null, depIn: !!(x.dep && x.depIn), depBack: x.dep ? x.depBack : null,
       pays: x.pays.map(function (o, j) { return { id: 'o' + uid() + i + '_' + j, ts: base + i, date: o.date, amount: o.amount, note: o.note || '' }; }) };
     // toptancılı girişin ödemeleri toptancı hesabına
     if (t && s.pays.length) { t.pays = t.pays.concat(s.pays); s.pays = []; }
@@ -353,6 +338,11 @@ function applyImport(replace) {
       db.entries.push({ id: 'e' + uid() + i + '_' + j, ts: s.ts, sid: s.id, pid: pid, date: s.date, time: s.time,
         koli: l.koli, kpp: l.kpp || null, palet: l.palet || null, total: l.total, auto: !!l.auto, extra: l.extra || 0 });
     });
+  });
+  parsed.rets.forEach(function (x, i) {
+    var note = x.note.join(' '), t = ensureSup(x.sup);
+    if (x.type === 'palet iade') { if (x.n) addMov('palet iadesi', x, i, t, note); addMov('palet parasi', x, i, t, note); }
+    else addMov(x.type === 'palet verdim' ? 'palet iadesi' : x.type, x, i, t, note);
   });
   parsed.sales.forEach(function (x, i) {
     var total = x.items.reduce(function (t, it) { return t + it.n * it.price; }, 0);
