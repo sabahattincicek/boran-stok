@@ -1,13 +1,11 @@
 /* Stok sayfası: marka grupları, girişler, ürün detayı, sayım */
 /* marka grupları (stok) */
-.brand{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.brand h3{margin:0;padding:10px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;background:var(--tint);font-size:1.05rem;text-transform:uppercase;letter-spacing:.04em}
-.brand h3 span{font-size:.78rem;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;white-space:nowrap}
+details.more.brand>.morein{padding:0;gap:0}
+.brand>summary b{text-transform:uppercase;letter-spacing:.04em}
+.brand .lowc{color:var(--bad);font-weight:600}
 .prod{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:11px 14px;text-align:left}
-.brand h3+.prod{border-top:0}
 .prod .l{display:flex;flex-direction:column;gap:2px;min-width:0}
 .prod .v{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
-.prod .m{font-size:.76rem;color:var(--muted)}
 .prod .q{text-align:right;flex:none}
 .prod .q b{font-family:var(--mono);font-size:1.2rem;font-variant-numeric:tabular-nums}
 .prod .q small{display:block;font-size:.74rem;color:var(--muted)}
@@ -27,7 +25,7 @@
 .crow .l{display:flex;flex-direction:column;min-width:0}
 .crow small{font-size:.76rem;color:var(--muted)}
 .crow input{width:100px;flex:none;text-align:right;font-family:var(--mono)}
-.ship{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.ship{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:10px 12px}
 .ship.due{border-left-color:var(--bad)}
 .ship .sh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .ship .sh .d{font-family:var(--mono);font-weight:700;font-size:.9rem;padding-top:3px}

@@ -12,11 +12,11 @@ mountPage(`
         <button type="button" class="addbtn" id="btnCount">Sayım gir</button>
       </div>
       <div class="list" id="brands"></div>
-      <h2>Toptancılar</h2>
-      <div class="tbl" id="stSupTbl"></div>
-      <h2>Son girişler</h2>
-      <div class="list" id="recent"></div>
-      <button type="button" id="recentMore" hidden>Daha fazla göster</button>
+      <details class="more sec" id="stSupD"><summary><b>Toptancılar</b><small id="stSupS"></small></summary><div class="morein"><div class="tbl" id="stSupTbl"></div></div></details>
+      <details class="more sec"><summary><b>Son girişler</b><small id="recentS"></small></summary><div class="morein">
+        <div class="list" id="recent"></div>
+        <button type="button" id="recentMore" hidden>Daha fazla göster</button>
+      </div></details>
     </div>
     <div class="col" id="stSup" hidden></div>
   </section>`);
@@ -43,23 +43,24 @@ function renderStockAll() {
   var last = lastEntry(all);
   $('kpis').innerHTML =
     '<div class="kpi"><span>Toplam stok</span><b>' + fmt(totalKoli) + ' koli</b><small>' + nProd + ' çeşit ürün</small></div>'
-    + '<div class="kpi"><span>Son giriş</span><b>' + (last ? dateTR(last.date) : '—') + '</b><small>' + (last ? esc(pname(last.pid)) + ' · ' + ago(last.date) : 'Henüz giriş yok') + '</small></div>'
-    + '<div class="kpi"><span>Bu ay alım</span><b>' + money(mon) + '</b></div>'
     + '<div class="kpi' + (debt > 0 ? ' bad' : '') + '"><span>Toptancıya kalan borç</span><b>' + money(debt) + '</b></div>';
+  $('recentS').textContent = last ? ago(last.date) + ' · bu ay ' + money(mon) : '';
 
   var bs = brands(true);
   if (!bs.length) {
     $('brands').innerHTML = '<div class="empty">Henüz ürün yok. İlk tır geldiğinde <b>+ Ürün girişi</b> ile ekle.</div>';
   } else {
     $('brands').innerHTML = bs.map(function (b) {
-      var sum = b.ids.reduce(function (t, id) { return t + stockOf(id); }, 0);
-      return '<section class="brand"><h3>' + esc(b.name) + '<span>' + b.ids.length + ' çeşit · ' + fmt(sum) + ' koli</span></h3>'
-        + b.ids.map(function (id) {
-          var p = db.products[id], q = stockOf(id), l = lastEntry(entriesOf(id));
-          return '<button type="button" class="prod' + ((p.kpp ? q < p.kpp : q <= 0) ? ' low' : '') + '" data-prod="' + id + '">'
-            + '<span class="l"><span class="v">' + esc(p.variety) + '</span><span class="m">Son giriş ' + (l ? dateTR(l.date) + ' · ' + ago(l.date) : '—') + (p.kpp ? ' · palette ' + p.kpp + ' koli' : '') + '</span></span>'
-            + '<span class="q"><b>' + fmt(q) + '</b> koli<small>' + palTxt(q, p.kpp) + '</small></span></button>';
-        }).join('') + '</section>';
+      var sum = b.ids.reduce(function (t, id) { return t + stockOf(id); }, 0), low = 0;
+      var prods = b.ids.map(function (id) {
+        var p = db.products[id], q = stockOf(id), isLow = p.kpp ? q < p.kpp : q <= 0;
+        if (isLow) low++;
+        return '<button type="button" class="prod' + (isLow ? ' low' : '') + '" data-prod="' + id + '">'
+          + '<span class="l"><span class="v">' + esc(p.variety) + '</span></span>'
+          + '<span class="q"><b>' + fmt(q) + '</b> koli<small>' + palTxt(q, p.kpp) + '</small></span></button>';
+      }).join('');
+      // tek marka varsa açık gelir; azalan ürün kapalı markada da görünür
+      return more('brand.' + fold(b.name), '<b>' + esc(b.name) + '</b><small>' + (low ? '<span class="lowc">' + low + ' azaldı</span> · ' : '') + fmt(sum) + ' koli</small>', prods, 'sec brand', bs.length === 1);
     }).join('');
   }
 
@@ -71,6 +72,8 @@ function renderStockAll() {
   });
   var none = shipsOf('');
   if (none.length && rows.length) rows.push('<tr><td class="unk">Toptancısız girişler</td><td>' + none.length + '</td><td>' + money(supDebt('')) + '</td><td>—</td></tr>');
+  $('stSupS').textContent = db.sups.length ? db.sups.length + ' toptancı' : '';
+  if (!rows.length) $('stSupD').open = true;
   $('stSupTbl').innerHTML = rows.length
     ? '<table><thead><tr><th>Toptancı</th><th>Giriş</th><th>Borç</th><th>Palet parası</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>'
     : '<div class="empty" style="border:0">Henüz toptancı yok. Yukarıdan <b>+ Toptancı</b> ile ekle; her toptancının ürünleri, girişleri ve hesabı ayrı tutulur.</div>';
@@ -103,10 +106,9 @@ function shipHTML(s) {
   var ls = linesOf(s.id), acc = !!s.sup, tot = acc ? shipDue(s) : shipTotal(s), paid = acc ? 0 : shipPaid(s), rem = acc ? 0 : tot - paid;
   var koli = ls.reduce(function (t, e) { return t + e.koli; }, 0);
   var pays = s.pays.slice().sort(function (a, b) { return cmp(a.date + ' ' + a.ts, b.date + ' ' + b.ts); });
-  return '<div class="ship' + (rem > 0.004 ? ' due' : '') + '">'
-    + '<div class="sh"><span class="d">' + dateTR(s.date) + (s.time ? ' ' + s.time : '') + (s.sup && stSup !== s.sup ? '<small class="sup">' + esc(supName(s.sup)) + '</small>' : '') + '</span>'
-    + '<span class="tt"><b>' + (tot ? money(tot) : 'fiyatsız') + '</b><small>' + ls.length + ' çeşit · ' + fmt(koli) + ' koli</small></span></div>'
-    + '<ul class="its">' + ls.map(function (e) {
+  var head = '<span class="shm"><span class="sh"><span class="d">' + dateTR(s.date) + (s.time ? ' ' + s.time : '') + (s.sup && stSup !== s.sup ? '<small class="sup">' + esc(supName(s.sup)) + '</small>' : '') + '</span>'
+    + '<span class="tt"><b>' + (tot ? money(tot) : 'fiyatsız') + '</b><small>' + ls.length + ' çeşit · ' + fmt(koli) + ' koli' + (rem > 0.004 ? ' · kalan ' + money(rem) : '') + '</small></span></span></span>';
+  return more('ship.' + s.id, head, '<ul class="its">' + ls.map(function (e) {
       var k = e.koli;
       return '<li><span><b>' + esc(pname(e.pid)) + '</b><small>' + lineKoliTxt(e) + '</small></span>'
         + '<span>' + (e.total != null ? money(e.total) + (k ? '<small>' + (e.auto ? 'pay · ' : '') + 'koli ' + money(e.total / k) + '</small>' : '')
@@ -137,8 +139,8 @@ function shipHTML(s) {
     + (s.note ? '<span class="note">' + esc(s.note) + '</span>' : '')
     + '<div class="acts">'
     + (tot && rem > 0.004 ? '<button type="button" class="paidbtn" data-sd="shpay" data-ref="' + s.id + '">Ödeme yap</button>' : '')
-    + '<button type="button" data-ship="' + s.id + '">Düzenle</button></div>'
-    + '</div>';
+    + '<button type="button" data-ship="' + s.id + '">Düzenle</button></div>',
+    'item ship' + (rem > 0.004 ? ' due' : ''));
 }
 // toptancısız girişin palet iadesini geri al (iade ve girişe ödeme pencereden: toptanci.js openSd)
 function undoDep(sid) {

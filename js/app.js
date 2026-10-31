@@ -18,6 +18,7 @@ function go(tab) {
   }
   if (tab === 'satis') {
     if (!sEdit && !timeTouched) $('sTime').value = nowHM();
+    renderSaleForm(); // yeni girilen ürünler listede görünsün
   }
 }
 

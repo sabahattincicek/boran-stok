@@ -90,7 +90,7 @@ input.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
 .chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 .kpi.hero b{font-size:1.45rem}
 .kpi.warn small{color:var(--warn)}
-.tbl{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
 .tbl table{width:100%;border-collapse:collapse;font-size:.86rem}
 .tbl th,.tbl td{padding:7px 10px;text-align:right;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
 .tbl th{font-size:.72rem;color:var(--muted);font-weight:600;border-top:0}
@@ -108,6 +108,22 @@ input.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
 .dayh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:3px;margin-top:6px;font-size:.85rem}
 .dayh b{font-family:var(--mono)}
 .dayh span{color:var(--muted);font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* ayrıntı: ok ile açılır. Düz hali form içinde, .sec sayfada bölüm kartı, .item liste kartı */
+details.more>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 0;font-size:.85rem;font-weight:600;color:var(--accent);-webkit-tap-highlight-color:transparent}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::after{content:"▾";flex:none;font-size:1.05rem;line-height:1;color:var(--muted);transition:transform .15s}
+details.more[open]>summary::after{transform:rotate(180deg)}
+details.more>summary>:first-child{flex:1;min-width:0}
+.morein{display:flex;flex-direction:column;gap:12px;padding-top:6px}
+details.more.sec{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+details.more.sec>summary{padding:13px 14px;font-size:.95rem;font-weight:400;color:var(--ink)}
+details.more.sec>summary small{font-size:.78rem;color:var(--muted);white-space:nowrap}
+details.more.sec>.morein{padding:0 14px 14px}
+details.more.item>summary{padding:0;font-size:1rem;font-weight:400;color:inherit}
+details.more.item>.morein{padding-top:10px;gap:8px}
+.shm{display:flex;flex-direction:column;gap:2px}
+.brief{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}
+.brief .rem{color:var(--bad);font-weight:600}
 /* pencereler (alttan açılan) */
 dialog{border:0;padding:0;margin:auto auto 0;width:100%;max-width:560px;max-height:92vh;border-radius:16px 16px 0 0;background:var(--surface);color:var(--ink)}
 dialog::backdrop{background:rgba(6,18,22,.55)}
@@ -130,7 +146,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border
 nav.tabs div{display:flex;max-width:560px;margin:0 auto}
 nav.tabs button{flex:1;min-width:0;border:0;border-radius:0;background:none;padding:16px 2px;font-size:.76rem;font-weight:600;color:var(--muted);border-top:3px solid transparent}
 nav.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--accent)}
-.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;max-width:calc(100% - 32px);z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;max-width:calc(100% - 32px);z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none}
 nav.tabs .logo{display:none}
 
 select{min-height:46px;padding:0 10px}
@@ -144,7 +160,7 @@ select.bad,input.bad{border-color:var(--bad);background:var(--bad-bg);color:var(
 .tbl tr.tap:hover td{background:var(--tint)}
 
 /* şube seçimi (en üstte) */
-.acct{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+.acct{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:.8rem;color:var(--muted)}
 .acct select{flex:1;max-width:320px;min-height:40px;font-weight:700;color:var(--accent);border-color:var(--accent);background:var(--tint)}
 .acct button{padding:8px 12px;font-size:.85rem}
 .acr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px}

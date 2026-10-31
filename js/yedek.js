@@ -4,7 +4,6 @@
 mountPage(`
   <section class="page" id="p-yedek" hidden>
     <header class="top"><h1>Yedek</h1><span class="hint" id="bAcct"></span></header>
-    <p class="hint">Kayıtlar sadece bu tarayıcının hafızasında durur. Tarayıcı verisini silersen veya telefon değiştirirsen kaybolur; ara ara dışa aktar. Her şubenin yedeği ayrı alınır; içe aktarma açık olan şubeye yapılır.</p>
     <div class="card">
       <h2>Dışa aktar</h2>
       <p class="hint" id="lastBackup"></p>
@@ -13,10 +12,12 @@ mountPage(`
         <button type="button" id="expShare" hidden>Paylaş</button>
         <button type="button" id="expCopy">Kopyala</button>
       </div>
-      <textarea id="expOut" readonly spellcheck="false"></textarea>
+      <details class="more"><summary><span>Yedeğin içeriği</span></summary><div class="morein">
+        <p class="hint" id="bCounts"></p>
+        <textarea id="expOut" readonly spellcheck="false"></textarea>
+      </div></details>
     </div>
-    <div class="card">
-      <h2>İçe aktar</h2>
+    <details class="more sec"><summary><b>İçe aktar</b></summary><div class="morein">
       <p class="hint">Daha önce aldığın .txt yedeğini seç ya da metnini aşağıya yapıştır.</p>
       <input type="file" id="impFile" accept=".txt,text/plain">
       <textarea id="impIn" rows="6" spellcheck="false" autocapitalize="off" placeholder="Yedek metnini buraya yapıştır"></textarea>
@@ -26,7 +27,10 @@ mountPage(`
         <button type="button" class="primary grow" id="impMerge">Mevcutlara ekle</button>
         <button type="button" class="danger" id="impReplace">Hepsini değiştir</button>
       </div>
-    </div>
+    </div></details>
+    <details class="more sec"><summary><b>Yedek neden önemli?</b></summary><div class="morein">
+      <p class="hint">Kayıtlar sadece bu tarayıcının hafızasında durur. Tarayıcı verisini silersen veya telefon değiştirirsen kaybolur; ara ara dışa aktar. Her şubenin yedeği ayrı alınır; içe aktarma açık olan şubeye yapılır.</p>
+    </div></details>
   </section>`);
 
 function byDayBlocks(list, L, write) {
@@ -111,8 +115,8 @@ function renderBackup() {
   $('expOut').value = exportText();
   var lb = ameta('lastBackup');
   $('bAcct').textContent = acct.name;
-  $('lastBackup').textContent = acct.name + ': ' + db.sales.length + ' satış, ' + db.ships.length + ' giriş, ' + db.counts.length + ' sayım, ' + db.cash.length + ' gelir/gider, ' + Object.keys(db.products).length + ' ürün, ' + db.sups.length + ' toptancı. '
-    + (lb ? 'Son yedek: ' + dateTR(lb.slice(0, 10)) + ' ' + lb.slice(11) + ' (' + ago(lb.slice(0, 10)) + ').' : 'Henüz yedek alınmadı.');
+  $('bCounts').textContent = acct.name + ': ' + db.sales.length + ' satış, ' + db.ships.length + ' giriş, ' + db.counts.length + ' sayım, ' + db.cash.length + ' gelir/gider, ' + Object.keys(db.products).length + ' ürün, ' + db.sups.length + ' toptancı.';
+  $('lastBackup').textContent = lb ? 'Son yedek: ' + dateTR(lb.slice(0, 10)) + ' ' + lb.slice(11) + ' (' + ago(lb.slice(0, 10)) + ').' : 'Henüz yedek alınmadı.';
   $('expShare').hidden = !(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'a.txt', { type: 'text/plain' })] }));
 }
 

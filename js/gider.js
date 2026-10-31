@@ -6,13 +6,15 @@ mountPage(`
     <header class="top"><h1>Gelir-Gider</h1><span class="hint" id="cPerTxt"></span></header>
     <div class="sform" id="cForm">
       <div class="editbar" id="cEditBar" hidden><span id="cEditTxt"></span><button type="button" id="cCancel">Vazgeç</button></div>
-      <div class="grid2">
-        <label class="f"><span id="cDateL">Tarih</span><input type="date" id="cDate"></label>
-        <label class="f">Saat<input type="time" id="cTime"></label>
-      </div>
       <label class="f">Açıklama<input id="cDesc" autocomplete="off" placeholder="ör. Mazot, kira, babam sattı"></label>
-      <label class="f">Not<textarea id="cNote" rows="2" placeholder="ör. Fatura kesilecek"></textarea></label>
       <label class="f">Tutar (₺)<input id="cAmt" inputmode="decimal" autocomplete="off" placeholder="ör. 1500"></label>
+      <details class="more" id="cOpt"><summary><span id="cMoreT"></span></summary><div class="morein">
+        <div class="grid2">
+          <label class="f"><span id="cDateL">Tarih</span><input type="date" id="cDate"></label>
+          <label class="f">Saat<input type="time" id="cTime"></label>
+        </div>
+        <label class="f">Not<textarea id="cNote" rows="2" placeholder="ör. Fatura kesilecek"></textarea></label>
+      </div></details>
       <p class="err" id="cErr" role="alert"></p>
       <div class="savebar gb">
         <button type="button" class="bgider" id="cGider">Gider kaydet</button>
@@ -63,17 +65,20 @@ function renderCash() {
 }
 function cashHTML(x) {
   var gelir = x.kind === 'gelir';
-  return '<div class="cash' + (gelir ? '' : ' out') + (cEdit === x.id ? ' editing' : '') + '">'
-    + '<div class="sh"><span class="tm">' + esc(x.time || '--:--') + '</span><span class="k">' + (gelir ? 'Gelir' : 'Gider') + '</span><b>' + (gelir ? '+' : '−') + money(x.amount) + '</b></div>'
-    + '<div class="ds">' + esc(x.desc) + '</div>'
+  return more('cash.' + x.id, '<span class="shm"><span class="sh"><span class="ds">' + esc(x.desc) + '</span><b>' + (gelir ? '+' : '−') + money(x.amount) + '</b></span></span>',
+    '<div class="sh"><span class="tm">' + esc(x.time || '--:--') + '</span><span class="k">' + (gelir ? 'Gelir' : 'Gider') + '</span></div>'
     + (x.note ? '<div class="note">' + esc(x.note) + '</div>' : '')
     + '<div class="acts"><button type="button" data-cedit="' + x.id + '">Düzenle</button>'
-    + '<button type="button" class="danger" data-cxdel="' + x.id + '">Sil</button></div></div>';
+    + '<button type="button" class="danger" data-cxdel="' + x.id + '">Sil</button></div>',
+    'item cash' + (gelir ? '' : ' out') + (cEdit === x.id ? ' editing' : ''));
 }
 function cMarkPast() {
-  var past = $('cDate').value && $('cDate').value !== today();
+  var past = $('cDate').value && $('cDate').value !== today(), L = [];
   $('cDate').classList.toggle('past', !!past);
   $('cDateL').textContent = past ? 'Tarih (bugün değil!)' : 'Tarih';
+  if (past) { $('cOpt').open = true; L.push('Tarih ' + dateTR($('cDate').value)); }
+  if ($('cNote').value.trim()) L.push('Not var');
+  $('cMoreT').textContent = L.join(' · ') || 'Tarih, saat, not';
 }
 function resetCash() {
   cEdit = null; cTimeTouched = false;
@@ -81,6 +86,7 @@ function resetCash() {
   $('cDate').value = today(); $('cTime').value = nowHM();
   $('cEditBar').hidden = true;
   $('cGider').textContent = 'Gider kaydet'; $('cGelir').textContent = 'Gelir kaydet';
+  $('cOpt').open = false;
   cMarkPast();
 }
 function startCashEdit(id) {
@@ -102,7 +108,7 @@ function saveCash(kind) {
   else if (!$('cAmt').value.trim()) err = 'Tutarı yaz.';
   else if (a == null || a <= 0) err = 'Tutarı sayı olarak yaz, ör. 1500.';
   else if (!date) err = 'Tarihi seç.';
-  if (err) { $('cErr').textContent = err; return; }
+  if (err) { $('cErr').textContent = err; if (!date) $('cOpt').open = true; return; }
   var x = cEdit && byId(db.cash, cEdit), isNew = !x;
   if (isNew) { x = { id: 'g' + uid(), ts: Date.now() }; db.cash.push(x); }
   x.kind = kind; x.date = date; x.time = time; x.desc = desc; x.amount = a;
@@ -128,6 +134,7 @@ $('cPer').addEventListener('click', function (ev) { var b = ev.target.closest('[
 $('cMore').addEventListener('click', function () { cLimit += 40; renderCash(); });
 $('cDate').addEventListener('change', cMarkPast);
 $('cTime').addEventListener('input', function () { cTimeTouched = true; });
+$('cNote').addEventListener('input', cMarkPast);
 ['cDesc', 'cAmt'].forEach(function (id) { $(id).addEventListener('input', function () { $('cErr').textContent = ''; }); });
 document.addEventListener('click', function (ev) {
   var b = ev.target.closest('[data-cedit],[data-cxdel]'); if (!b) return;

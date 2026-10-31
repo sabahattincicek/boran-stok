@@ -67,6 +67,16 @@ function kpi(label, val, small, cls) {
   return '<div class="kpi' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + val + '</b>' + (small ? '<small>' + small + '</small>' : '') + '</div>';
 }
 
+// Genelden özele: ayrıntılar ok ile açılır. Liste yeniden çizilince açık kalsın diye durum moreOpen'da tutulur
+var moreOpen = {};
+function more(key, head, body, cls, def) {
+  var on = key in moreOpen ? moreOpen[key] : def;
+  return '<details class="more' + (cls ? ' ' + cls : '') + '" data-more="' + esc(key) + '"' + (on ? ' open' : '') + '><summary>' + head + '</summary><div class="morein">' + body + '</div></details>';
+}
+document.addEventListener('toggle', function (ev) { var k = ev.target.dataset && ev.target.dataset.more; if (k != null) moreOpen[k] = ev.target.open; }, true);
+// kırmızı kutu kapalı bölümde kalmasın
+function openBad(root) { root.querySelectorAll('details').forEach(function (d) { if (d.querySelector('.bad')) d.open = true; }); }
+
 var toastT;
 function toast(msg) {
   var t = $('toast'); t.textContent = msg; t.hidden = false;

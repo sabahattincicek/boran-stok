@@ -1,5 +1,5 @@
 /* Gelir-Gider sayfası */
-.cash{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.cash{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:10px 12px}
 .cash.out{border-left-color:var(--bad)}
 .cash.editing{outline:3px solid var(--accent);outline-offset:2px}
 .cash .sh{display:flex;align-items:baseline;gap:10px}

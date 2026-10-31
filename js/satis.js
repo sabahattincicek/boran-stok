@@ -11,12 +11,14 @@ mountPage(`
         <button type="button" data-pay="nakit" aria-pressed="true">Nakit</button>
         <button type="button" data-pay="havale" aria-pressed="false">Havale</button>
       </div>
-      <label class="f">Ödenen tutar (₺)<input id="sPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa tamamı"></label>
-      <div class="grid2">
-        <label class="f"><span id="sDateL">Tarih</span><input type="date" id="sDate"></label>
-        <label class="f">Saat<input type="time" id="sTime"></label>
-      </div>
-      <label class="f">Not<textarea id="sNote" rows="2" placeholder="ör. Parasını sonra verecek"></textarea></label>
+      <details class="more" id="sMore"><summary><span id="sMoreT"></span></summary><div class="morein">
+        <label class="f">Ödenen tutar (₺)<input id="sPaid" inputmode="decimal" autocomplete="off" placeholder="Boşsa tamamı"></label>
+        <div class="grid2">
+          <label class="f"><span id="sDateL">Tarih</span><input type="date" id="sDate"></label>
+          <label class="f">Saat<input type="time" id="sTime"></label>
+        </div>
+        <label class="f">Not<textarea id="sNote" rows="2" placeholder="ör. Parasını sonra verecek"></textarea></label>
+      </div></details>
       <p class="err" id="sErr" role="alert"></p>
       <div class="savebar"><span class="tot" id="sTot">0 ₺</span><button type="button" class="primary" id="sSave">Kaydet</button></div>
     </div>
@@ -47,9 +49,11 @@ function renderSalesDay() {
 }
 function saleHTML(s) {
   var t = saleTotal(s), p = salePaid(s), open = saleOpen(s), cols = s.cols || [], last = cols[cols.length - 1];
-  return '<div class="sale' + (open ? ' no' : '') + (sEdit === s.id ? ' editing' : '') + '">'
-    + '<div class="sh"><span class="tm">' + esc(s.time || '--:--') + '</span><span class="pm">' + (s.pay === 'havale' ? 'Havale' : 'Nakit') + '</span><b>' + money(t) + '</b></div>'
-    + '<ul class="its">' + s.items.map(function (i) {
+  var koli = s.items.reduce(function (n, i) { return n + i.n; }, 0);
+  var head = '<span class="shm"><span class="sh"><span class="tm">' + esc(s.time || '--:--') + '</span><span class="pm">' + (s.pay === 'havale' ? 'Havale' : 'Nakit') + '</span><b>' + money(t) + '</b></span>'
+    + '<span class="brief">' + (s.items.length === 1 ? fmt(koli) + ' × ' + esc(pname(s.items[0].pid)) : fmt(koli) + ' koli · ' + s.items.length + ' çeşit')
+    + (open ? ' · <span class="rem">kalan ' + money(t - p) + '</span>' : '') + '</span></span>';
+  return more('sale.' + s.id, head, '<ul class="its">' + s.items.map(function (i) {
       return '<li><span>' + fmt(i.n) + ' × ' + esc(pname(i.pid)) + '</span><span>' + fmt(i.price) + ' → ' + money(i.n * i.price) + '</span></li>';
     }).join('') + '</ul>'
     + '<div class="ps">' + (open ? (p > 0 ? 'Ödenen ' + money(p) + ' · kalan ' + money(t - p) : 'Ödenmedi · ' + money(t) + ' alacak') : 'Ödendi' + (last ? ' · ' + dateTR(last.date) : '')) + '</div>'
@@ -60,8 +64,8 @@ function saleHTML(s) {
       + '<button type="button" class="paidbtn" data-spaid="' + s.id + '">Ödendi</button></div>' : '')
     + '<div class="acts">'
     + '<button type="button" data-sedit="' + s.id + '">Düzenle</button>'
-    + '<button type="button" class="danger" data-sdel="' + s.id + '">Sil</button></div>'
-    + '</div>';
+    + '<button type="button" class="danger" data-sdel="' + s.id + '">Sil</button></div>',
+    'item sale' + (open ? ' no' : '') + (sEdit === s.id ? ' editing' : ''));
 }
 
 /* ---------- satış sayfası: form ---------- */
@@ -111,10 +115,15 @@ function updateSaleCalc() {
   $('sPaid').placeholder = 'Boşsa tamamı' + (total ? ': ' + money(total) : '');
   $('sSave').textContent = sEdit ? 'Değişikliği kaydet' : 'Kaydet';
 }
+// kapalı bölümün başlığı girilenleri söyler; bugün olmayan tarih gizli kalmaz
 function markPast() {
-  var past = $('sDate').value && $('sDate').value !== today();
+  var past = $('sDate').value && $('sDate').value !== today(), paid = $('sPaid').value.trim(), L = [];
   $('sDate').classList.toggle('past', !!past);
   $('sDateL').textContent = past ? 'Tarih (bugün değil!)' : 'Tarih';
+  if (past) { $('sMore').open = true; L.push('Tarih ' + dateTR($('sDate').value)); }
+  if (paid) L.push('Ödenen ' + paid + ' ₺');
+  if ($('sNote').value.trim()) L.push('Not var');
+  $('sMoreT').textContent = L.join(' · ') || 'Ödenen tutar, tarih, not';
 }
 function setPay(v) {
   sPay = v;
@@ -126,6 +135,7 @@ function resetSaleForm() {
   $('sPaid').value = ''; $('sNote').value = ''; $('sErr').textContent = '';
   $('sDate').value = view; $('sTime').value = nowHM();
   $('sEditBar').hidden = true;
+  $('sMore').open = false;
   markPast(); renderSaleForm();
 }
 function startSaleEdit(id) {
@@ -159,7 +169,11 @@ function saveSale() {
   else if (paid == null) err = 'Ödenen tutarı sayı olarak yaz, ör. 150.';
   else if (paid > total + 0.004) err = 'Ödenen, satış toplamından (' + money(total) + ') fazla olamaz.';
   else if (!date) err = 'Tarihi seç.';
-  if (err) { $('sErr').textContent = err; return; }
+  if (err) {
+    $('sErr').textContent = err;
+    if (items.length && !noPrice) $('sMore').open = true; // kalan hatalar ödenen tutar ve tarih
+    return;
+  }
 
   var s = sEdit && byId(db.sales, sEdit), isNew = !s;
   if (isNew) { s = { id: 's' + uid(), ts: Date.now() }; db.sales.push(s); }
@@ -219,7 +233,8 @@ $('sBrands').addEventListener('toggle', function (ev) {
 $('sPay').addEventListener('click', function (ev) { var b = ev.target.closest('[data-pay]'); if (b) setPay(b.dataset.pay); });
 $('sDate').addEventListener('change', markPast);
 $('sTime').addEventListener('input', function () { timeTouched = true; });
-$('sPaid').addEventListener('input', function () { $('sErr').textContent = ''; });
+$('sPaid').addEventListener('input', function () { $('sErr').textContent = ''; markPast(); });
+$('sNote').addEventListener('input', markPast);
 $('sSave').addEventListener('click', saveSale);
 $('sCancel').addEventListener('click', function () { resetSaleForm(); renderSalesDay(); });
 function setView(iso) {

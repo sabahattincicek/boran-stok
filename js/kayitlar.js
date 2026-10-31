@@ -12,10 +12,9 @@ mountPage(`
       <button type="button" data-per="tum" aria-pressed="false">Tümü</button>
     </div>
     <div class="kpis" id="rKpis"></div>
-    <h2>Stok durumu <small class="hint">(şu an)</small></h2>
-    <div class="tbl" id="rProd"></div>
-    <h2>Genel durum <small class="hint">(tüm zamanlar)</small></h2>
-    <div class="kpis" id="rGen"></div>
+    <details class="more sec"><summary><b>Ayrıntılı özet</b></summary><div class="morein"><div class="kpis" id="rKpis2"></div></div></details>
+    <details class="more sec"><summary><b>Stok durumu</b><small id="rProdS"></small></summary><div class="morein"><div class="tbl" id="rProd"></div></div></details>
+    <details class="more sec"><summary><b>Genel durum</b><small>tüm zamanlar</small></summary><div class="morein"><div class="kpis" id="rGen"></div></div></details>
     <h2>Satışlar</h2>
     <input type="search" id="rQ" autocomplete="off" placeholder="Ara: ürün, not, tarih (ör. serinyol, 19.09)">
     <div class="chips" id="rPay">
@@ -23,10 +22,10 @@ mountPage(`
       <button type="button" data-rpay="borclu" aria-pressed="false">Borçlu</button>
       <button type="button" data-rpay="nakit" aria-pressed="false">Nakit</button>
       <button type="button" data-rpay="havale" aria-pressed="false">Havale</button>
-      <button type="button" id="rRefresh" class="refresh" title="Ödendi işaretlenenleri listeden düşür">↻ Yenile</button>
+      <button type="button" id="rRefresh" class="refresh" title="Ödendi işaretlenenleri listeden düşür" hidden>↻ Yenile</button>
     </div>
     <p class="hint" id="rCount"></p>
-    <div class="tbl sum" id="rSum" hidden></div>
+    <details class="more sec" id="rSumD" hidden><summary><b>Satış tablosu</b></summary><div class="morein"><div class="tbl sum" id="rSum"></div></div></details>
     <div class="list" id="rList"></div>
     <button type="button" id="rMore" hidden>Daha fazla göster</button>
   </section>`);
@@ -68,14 +67,17 @@ function renderRecords() {
   var unkTxt = S.unkKoli ? fmt(S.unkKoli) + ' koli alış fiyatı bilinmiyor (' + money(S.unkRev) + ' ciro hariç)' : '';
   $('rKpis').innerHTML =
     kpi('Ciro', money(S.ciro), S.n + ' satış · ' + fmt(S.koli) + ' koli')
-    + kpi('Tahsil edilen', money(S.paid), 'ödeme tarihine göre · nakit ' + money(S.nakit) + ' · havale ' + money(S.havale), 'ok')
-    + kpi('Alacak', money(rem), 'bu dönemin satışlarından', rem > 0.004 ? 'bad' : '')
+    + kpi('Tahsil edilen', money(S.paid), '', 'ok')
+    + kpi('Alacak', money(rem), '', rem > 0.004 ? 'bad' : '')
+    + kpi('Net kâr', sm(net), unkTxt ? 'alış fiyatı bilinmeyenler hariç' : '', (net < 0 ? 'bad' : 'ok') + (unkTxt ? ' warn' : ''));
+  $('rKpis2').innerHTML =
+    kpi('Nakit tahsilat', money(S.nakit), 'ödeme tarihine göre')
+    + kpi('Havale tahsilat', money(S.havale), 'ödeme tarihine göre')
     + kpi('Malın maliyeti', money(S.cost), unkTxt || 'alış fiyatı + nakliye/ek gider payı', unkTxt ? 'warn' : '')
     + kpi('Brüt kâr', sm(gross), (S.knownRev ? 'kâr oranı %' + fmt(gross / S.knownRev * 100) : 'ciro − maliyet') + (unkTxt ? ' · bilinmeyenler hariç' : ''), gross < 0 ? 'bad' : 'ok')
     + kpi('Ek gelir', money(inc), 'Gelir-Gider sayfasından', 'ok')
     + kpi('Gider', money(out), 'Gelir-Gider sayfasından', 'bad')
     + kpi('Stok alımı', money(buy), 'toptancıya ödenen ' + money(supPaid) + (extra ? ' · nakliye/ek gider ' + money(extra) : ''))
-    + kpi('Net kâr', sm(net), 'brüt kâr + ek gelir − gider', 'wide hero ' + (net < 0 ? 'bad' : 'ok'))
     + kpi('Kasa hareketi', sm(flow), 'tahsilat + ek gelir − gider − toptancıya ödenen' + (extra ? ' − nakliye/ek gider' : '') + (dep ? ' ' + (dep < 0 ? '−' : '+') + ' boş palet parası ' + money(Math.abs(dep)) : ''), 'wide ' + (flow < 0 ? 'bad' : 'ok'));
 
   // stok durumu (şu an): son sayım + sonrasında giren − sonrasında satılan
@@ -94,6 +96,7 @@ function renderRecords() {
         + '<td' + (now < 0 ? ' class="neg"' : '') + '><b>' + fmt(now) + '</b></td></tr>';
     });
   });
+  $('rProdS').textContent = rows ? fmt(T.now) + ' koli' : '';
   $('rProd').innerHTML = rows
     ? '<table><thead><tr><th>Ürün</th><th>Son sayım</th><th>Sonra giren</th><th>Sonra satılan</th><th>Şimdiki stok</th></tr></thead><tbody>' + rows + '</tbody>'
       + '<tfoot><tr><td>Toplam</td><td>' + fmt(T.cnt) + '</td><td>+' + fmt(T.in) + '</td><td>−' + fmt(T.out) + '</td><td>' + fmt(T.now) + '</td></tr></tfoot></table>'
@@ -127,6 +130,7 @@ function saleText(s) {
 }
 function renderRecordList(p) {
   var q = fold($('rQ').value.trim());
+  $('rRefresh').hidden = !Object.keys(rKeep).length;
   var list = db.sales.filter(function (s) {
     if (!inPer(s.date, p)) return false;
     if (rPay === 'borclu' && !saleOpen(s) && !rKeep[s.id]) return false;
@@ -152,10 +156,9 @@ function renderRecordList(p) {
     rows += '<tr><td>' + esc(pname(id)) + '</td><td>' + fmt(o.n) + '</td><td>' + money(o.t) + '</td><td>' + (o.n ? money(o.t / o.n) : '—') + '</td>'
       + (o.known ? '<td' + (o.prof < 0 ? ' class="neg"' : '') + '>' + sm(o.prof) + (o.unk ? '*' : '') + '</td>' : '<td class="unk">?</td>') + '</tr>';
   });
-  $('rSum').hidden = !rows;
+  $('rSumD').hidden = !rows;
   $('rSum').innerHTML = rows
-    ? '<div class="tblh">Satış tablosu</div>'
-      + '<table><thead><tr><th>Çeşit</th><th>Koli</th><th>Tutar</th><th>Ort. koli</th><th>Kâr</th></tr></thead><tbody>' + rows + '</tbody>'
+    ? '<table><thead><tr><th>Çeşit</th><th>Koli</th><th>Tutar</th><th>Ort. koli</th><th>Kâr</th></tr></thead><tbody>' + rows + '</tbody>'
       + '<tfoot><tr><td>Toplam</td><td>' + fmt(koli) + '</td><td>' + money(tot) + '</td><td>' + (koli ? money(tot / koli) : '—') + '</td><td' + (P.prof < 0 ? ' class="neg"' : '') + '>' + sm(P.prof) + '</td></tr></tfoot></table>'
       + (P.unk ? '<p class="hint" style="padding:6px 8px">? ve *: alış fiyatı bilinmeyen koliler kâra katılmadı.</p>' : '')
     : '';

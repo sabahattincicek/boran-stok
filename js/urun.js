@@ -4,27 +4,30 @@
 mountDialog(`
 <dialog id="dlgProd" aria-labelledby="prT"><div class="sheet">
   <header><h2 id="prT"></h2><button type="button" data-close>Kapat</button></header>
-  <div><div class="big" id="prQty"></div><p class="hint" id="prMeta"></p></div>
+  <div class="big" id="prQty"></div>
   <div class="row">
     <button type="button" class="primary grow" id="prAdd">Bu üründen giriş ekle</button>
     <button type="button" id="prCnt">Sayım yap</button>
+  </div>
+  <details class="more" id="prMore"><summary><span>Ayrıntılar, girişler ve sayımlar</span></summary><div class="morein">
+    <p class="hint" id="prMeta"></p>
     <button type="button" id="prRen">Adı düzelt</button>
-  </div>
-  <div class="card" id="prRenBox" hidden>
-    <div class="grid2">
-      <label class="f">Marka<input id="rnBrand" autocomplete="off"></label>
-      <label class="f">Çeşit<input id="rnVar" autocomplete="off"></label>
+    <div class="card" id="prRenBox" hidden>
+      <div class="grid2">
+        <label class="f">Marka<input id="rnBrand" autocomplete="off"></label>
+        <label class="f">Çeşit<input id="rnVar" autocomplete="off"></label>
+      </div>
+      <p class="hint" id="rnHint"></p>
+      <button type="button" class="primary" id="rnSave">Adı kaydet</button>
     </div>
-    <p class="hint" id="rnHint"></p>
-    <button type="button" class="primary" id="rnSave">Adı kaydet</button>
-  </div>
-  <h2>Girişler ve sayımlar</h2>
-  <div class="list" id="prList"></div>
+    <div class="list" id="prList"></div>
+  </div></details>
 </div></dialog>
 
 <dialog id="dlgCount" aria-labelledby="cntT"><div class="sheet">
   <header><h2 id="cntT">Stok sayımı</h2><button type="button" data-close>Kapat</button></header>
-  <p class="hint">Elinde gerçekte kaç koli olduğunu say ve yaz. Stok bu sayıdan devam eder; önceki giriş ve satışlar kayıtlarda kalır ama stoğu artık etkilemez. Saymadığın ürünü boş bırak.</p>
+  <p class="hint">Saydığın koliyi yaz, saymadığını boş bırak.</p>
+  <details class="more"><summary><span>Sayım ne yapar?</span></summary><div class="morein"><p class="hint">Stok bu sayıdan devam eder; önceki giriş ve satışlar kayıtlarda kalır ama stoğu artık etkilemez.</p></div></details>
   <div id="cntList"></div>
   <p class="err" id="cntErr" role="alert"></p>
   <button type="button" class="primary" id="cntSave">Sayımı kaydet</button>
@@ -48,7 +51,7 @@ function openProd(pid) {
     .sort(function (a, b) { return cmp(b.k, a.k); });
   $('prList').innerHTML = rows.length ? rows.map(function (r) { return r.h; }).join('') : '<div class="empty">Giriş yok.</div>';
   $('prRenBox').hidden = true;
-  if (!$('dlgProd').open) $('dlgProd').showModal();
+  if (!$('dlgProd').open) { $('prMore').open = false; $('dlgProd').showModal(); }
 }
 function cntHTML(c) {
   return '<div class="ent cnt"><span class="h"><b>Sayım: ' + fmt(c.koli) + ' koli</b><span class="d">' + dateTR(c.date) + (c.time ? ' ' + c.time : '') + '</span></span>'

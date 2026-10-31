@@ -2,6 +2,19 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-31 09:28 — Arayüz sadeleşti: genelden özele, ayrıntılar ok ile açılır
+- Kural (kullanıcı): ekranda genel bilgi, ayrıntı ok ile açılır; yeni kullanan için karmaşık olmasın. Veri yapısı ve yedek değişmedi.
+- **Ortak:** `more(key, başlık, içerik, sınıf, varsayılanAçık)` (core.js) `details.more` üretir, açık/kapalı `moreOpen`'da tutulur, yeniden çizimde korunur. `openBad(root)`: kırmızı kutu olan kapalı bölümü açar. Stil base.css'te: düz (form içi), `.sec` (sayfa bölümü), `.item` (liste kartı). Kapalı bölümün başlığı içinde yazılanları söyler (`Palet 750 ₺ · Nakliye 2.000 ₺`, `Not var`).
+- **Kartlar:** satış, giriş ve gelir-gider kartları kapalı; satışta saat, ödeme, tutar, ürün/koli özeti ve kalan alacak; açınca kalemler, tahsilat, düzenle/sil. Gelir-giderde açıklama + tutar.
+- **Satış formu:** ödenen tutar, tarih, saat, not ok altında (`#sMore`). Gelir-gider formu: açıklama + tutar üstte, tarih, saat, not ok altında (`#cOpt`). Tarih bugün değilse bölüm kendiliğinden açılır, başlıkta tarih yazar (tarih gizli kalıp yanlış güne kayıt olmasın). Hata alanı bölümün içindeyse bölüm açılır.
+- **Ürün girişi:** üstte tarih, toptancı, marka, çeşit, toplam koli, palet sayısı, girişin toplam fiyatı. Ok altında: satırda palette koli + çeşit fiyatı (`[data-lm]`, durum `r.open`), palet/nakliye/ek gider (`#fXtra`), şimdi ödediğim/not (`#fOther`), hesap ayrıntısı (`#fCalcD`). Hep görünen kısa özet `#fBrief` (çeşit, koli, palet, toptancı hesabına yazılacak, hatalar); "Yeni ürün oluşturulacak" ve koli tutmazlığı satırda görünür (`[data-lw]`).
+- **Kayıtlar:** 4 ana kutu (ciro, tahsil, alacak, net kâr); gerisi "Ayrıntılı özet" (nakit/havale ayrı kutu oldu). Stok durumu, Genel durum, Satış tablosu kapalı. "Yenile" sadece işe yarayacağı zaman görünür.
+- **Stok:** 2 ana kutu; markalar kapalı (tek marka varsa açık, azalan ürün başlıkta "N azaldı"); Toptancılar ve Son girişler kapalı, son giriş ve bu ay alım Son girişler başlığında.
+- **Toptancı:** kalan borç + butonlar; Ayrıntılı özet, Hesap, Ürünleri, Girişleri kapalı. Ödeme ve palet iadesi pencerelerinde tarih/not ok altında (`dateNote`), ipuçları kısaldı.
+- **Ürün penceresi, sayım, şubeler, yedek:** ayrıntı ve uzun açıklamalar ok altında. Tek şube varken üstte sadece "Şubeler" butonu kalır.
+- **Yan düzeltmeler:** Satış sekmesine geçince ürün listesi yenileniyor (ilk girişten sonra sayfa yenilenene kadar "Önce ürün girişi yap" yazıyordu). Bildirim (`.toast`) Kaydet'in üstüne binip dokunuşu yutuyordu, artık tıklamaya kapalı. `.tbl` yana kayıyor (toptancı Hesap tablosu telefonda kesiliyordu).
+- Headless Chrome'da denendi (390px ve 1280px, geçici profil): 21 adım geçti, ekran görüntülerine bakıldı. Yedekten içe aktarma ve açık tema denenmedi.
+
 ## 2026-10-31 09:14 — Girişte palet parası iki kutu: palet başı ve toplam
 - Giriş formunda "Palet başı (₺)" (`#fDepPer`) ve "Toplam palet parası (₺)" (`#fDep`). Yazılan kutu esas, öteki boşalır ve ürünlerdeki palet sayısından hesaplanan değeri "= …" diye gösterir (`readDep(rows)`). İkisi aynı anda dolu olamadığı için çelişki kontrolü yok; palet sayısı değişince hesap güncellenir.
 - Kayıtta yine sadece toplam tutuluyor (`s.dep`); yedek biçimi değişmedi. Düzenlemede toplam dolu, palet başı hesaplı açılır.

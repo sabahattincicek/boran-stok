@@ -21,14 +21,17 @@ function renderSupPanel(t) {
   var h = '<div class="suph"><div><h2>' + esc(t.name) + '</h2>' + (t.note ? '<p class="hint">' + esc(t.note) + '</p>' : '') + '</div>'
     + '<button type="button" data-sd="bilgi">Düzenle</button></div>';
   h += '<div class="kpis">'
-    + kpi(A.rem < -0.004 ? 'Avans (fazla ödenen)' : 'Kalan borç', money(Math.abs(A.rem)), 'borç ' + money(A.due) + ' · ödenen ' + money(A.paid) + (A.back ? ' · palet iadesi ' + money(A.back) : ''), A.rem > 0.004 ? 'bad' : 'ok')
-    + kpi('Bu ay alım', money(mon), ships.length + ' giriş')
-    + kpi('İade edilmemiş palet parası', money(L.open), 'girişlerde ' + money(L.out) + (L.n ? ' · ' + fmt(L.n) + ' palet' : '') + ' · iade ' + money(L.back) + (L.backN ? ' · ' + fmt(L.backN) + ' palet' : ''), L.open > 0.004 ? 'warn' : '')
+    + kpi(A.rem < -0.004 ? 'Avans (fazla ödenen)' : 'Kalan borç', money(Math.abs(A.rem)), '', 'wide ' + (A.rem > 0.004 ? 'bad' : 'ok'))
     + '</div>';
   h += '<div class="supacts">'
     + '<button type="button" class="primary addbtn" data-supentry>+ Ürün girişi</button>'
     + '<button type="button" class="paidbtn addbtn" data-sd="odeme">Ödeme yap</button>'
     + '<button type="button" class="addbtn" data-sd="iade">Palet iadesi</button></div>';
+  h += more('sup.oz.' + t.id, '<b>Ayrıntılı özet</b>', '<div class="kpis">'
+    + kpi('Toplam borç', money(A.due), 'ödenen ' + money(A.paid) + (A.back ? ' · palet iadesi ' + money(A.back) : ''))
+    + kpi('Bu ay alım', money(mon), ships.length + ' giriş')
+    + kpi('İade edilmemiş palet parası', money(L.open), 'girişlerde ' + money(L.out) + (L.n ? ' · ' + fmt(L.n) + ' palet' : '') + ' · iade ' + money(L.back) + (L.backN ? ' · ' + fmt(L.backN) + ' palet' : ''), 'wide' + (L.open > 0.004 ? ' warn' : ''))
+    + '</div>', 'sec');
 
   // hesap hareketleri: girişlerin tutarı borca, ödemeler ve palet iadeleri toplamdan düşer; en yeni üstte, kalan o ana kadarki
   var mv = ships.map(function (s) {
@@ -43,7 +46,7 @@ function renderSupPanel(t) {
   })).sort(function (a, b) { return cmp(a.k, b.k); });
   var bal = 0;
   mv.forEach(function (m) { bal += (m.due || 0) - (m.paid || 0); m.bal = bal; });
-  h += '<h2>Hesap</h2><div class="tbl">' + (mv.length
+  h += more('sup.hs.' + t.id, '<b>Hesap</b><small>' + mv.length + ' hareket</small>', '<div class="tbl">' + (mv.length
     ? '<table><thead><tr><th>Tarih</th><th>Hareket</th><th>Borç</th><th>Ödeme / iade</th><th>Kalan</th></tr></thead><tbody>'
       + mv.reverse().map(function (m) {
         return '<tr' + (m.ship ? ' class="tap" data-ship="' + m.ship + '"' : '') + '><td>' + dateTR(m.date) + '</td>'
@@ -52,21 +55,20 @@ function renderSupPanel(t) {
           + '<td' + (m.bal > 0.004 ? ' class="neg"' : '') + '>' + sm(m.bal) + '</td></tr>';
       }).join('') + '</tbody>'
       + '<tfoot><tr><td></td><td>Toplam</td><td>' + money(A.due) + '</td><td>' + money(A.paid + A.back) + '</td><td>' + sm(A.rem) + '</td></tr></tfoot></table>'
-    : '<div class="empty" style="border:0">Henüz giriş ya da ödeme yok.</div>') + '</div>';
+    : '<div class="empty" style="border:0">Henüz giriş ya da ödeme yok.</div>') + '</div>', 'sec');
 
   // ürün listesi: girişte bunlar arasından seçilir; girişte yeni yazılan ürün buraya kendiliğinden eklenir
   var cat = supBrands(t);
-  h += '<section class="card"><div class="cardh"><h2>Ürünleri</h2><button type="button" class="dash" data-sd="urun">+ Ürün ekle</button></div>'
+  h += more('sup.ur.' + t.id, '<b>Ürünleri</b><small>' + t.pids.length + ' ürün</small>', '<button type="button" class="dash" data-sd="urun">+ Ürün ekle</button>'
     + (cat.length ? cat.map(function (b) {
       return '<div class="cat"><h3>' + esc(b.name) + '</h3>' + b.ids.map(function (id) {
         return '<div class="catr"><span>' + esc(db.products[id].variety) + '</span><small>' + (inUse(id) ? 'stokta ' + fmt(stockOf(id)) + ' koli' : 'henüz girişi yok') + '</small>'
           + '<button type="button" data-pidrm="' + id + '">Çıkar</button></div>';
       }).join('') + '</div>';
-    }).join('') : '<p class="hint">Bu toptancının ürünü yok. "+ Ürün ekle" ile ekle ya da ilk girişte yaz; giriş kaydedilince listeye eklenir.</p>')
-    + '</section>';
+    }).join('') : '<p class="hint">Bu toptancının ürünü yok. "+ Ürün ekle" ile ekle ya da ilk girişte yaz; giriş kaydedilince listeye eklenir.</p>'), 'sec');
 
-  h += '<h2>Girişleri</h2><div class="list ships">' + (ships.length ? ships.slice(0, stLimit).map(shipHTML).join('') : '<div class="empty">Bu toptancıdan giriş yok.</div>') + '</div>';
-  if (ships.length > stLimit) h += '<button type="button" data-stmore>Daha fazla göster (' + (ships.length - stLimit) + ' giriş daha)</button>';
+  h += more('sup.gr.' + t.id, '<b>Girişleri</b><small>' + ships.length + ' giriş</small>', '<div class="list ships">' + (ships.length ? ships.slice(0, stLimit).map(shipHTML).join('') : '<div class="empty">Bu toptancıdan giriş yok.</div>') + '</div>'
+    + (ships.length > stLimit ? '<button type="button" data-stmore>Daha fazla göster (' + (ships.length - stLimit) + ' giriş daha)</button>' : ''), 'sec');
   $('stSup').innerHTML = h;
 }
 
@@ -82,6 +84,11 @@ var SD = {
   depback: { t: 'Palet parası iade edildi', save: 'İade edildi' }
 };
 function dateF(id) { return '<label class="f">Tarih<input type="date" id="' + id + '" value="' + today() + '"></label>'; }
+// tarih bugün, not çoğu zaman boş: ok ile açılır
+function dateNote(ph) {
+  return '<details class="more"><summary><span>Tarih, not</span></summary><div class="morein">' + dateF('sdDate')
+    + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="' + ph + '"></label></div></details>';
+}
 // yeni toptancı ve toptancısız girişin ödemesi/palet iadesi seçili toptancı olmadan da açılır
 function openSd(mode, ref) {
   var t = supOf(stSup), free = mode === 'yeni' || mode === 'shpay' || mode === 'depback';
@@ -90,13 +97,12 @@ function openSd(mode, ref) {
   var A = t ? supAccount(t) : null, L = t ? palSum(t) : null, b = '', hint = '', del = false, title = SD[mode].t, s = ref && byId(db.ships, ref);
   if (mode === 'yeni') {
     b = '<label class="f">Toptancı / firma adı<input id="sdName" autocomplete="off" placeholder="ör. Yıldız Toptan"></label>';
-    hint = 'Eklendikten sonra ürünlerini toptancının sayfasından eklersin.';
   } else if (mode === 'shpay') {
     var rem = shipTotal(s) - shipPaid(s);
     title = dateTR(s.date) + ' girişine ödeme';
     b = '<label class="f">Ödenen tutar (₺)<input id="sdAmt" inputmode="decimal" autocomplete="off" placeholder="kalan ' + gnum(amt(rem)) + '"></label>'
-      + dateF('sdDate') + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="ör. Havale ile, elden verdim"></label>';
-    hint = 'Toptancısız giriş; kalan borç ' + money(rem) + '.';
+      + dateNote('ör. Havale ile, elden verdim');
+    hint = 'Kalan borç ' + money(rem) + '.';
   } else if (mode === 'depback') {
     b = dateF('sdDate');
     hint = dateTR(s.date) + ' girişinin boş palet parası ' + money(s.dep) + ' geri alındı olarak işaretlenecek.';
@@ -108,16 +114,15 @@ function openSd(mode, ref) {
   } else if (mode === 'urun') {
     b = '<div class="grid2"><label class="f">Marka<input id="sdBrand" autocomplete="off" list="dlBrand" autocapitalize="words" placeholder="ör. Maysu"></label>'
       + '<label class="f">Çeşit<input id="sdVar" autocomplete="off" list="dlVar" placeholder="ör. 0.5"></label></div>';
-    hint = 'Ekledikten sonra pencere açık kalır; aynı markanın diğer çeşitlerini arka arkaya ekleyebilirsin.';
   } else if (mode === 'odeme') {
     b = '<label class="f">Ödenen tutar (₺)<input id="sdAmt" inputmode="decimal" autocomplete="off" placeholder="' + (A.rem > 0.004 ? 'kalan ' + gnum(amt(A.rem)) : 'ör. 5.000') + '"></label>'
-      + dateF('sdDate') + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="ör. Havale ile, elden verdim"></label>';
-    hint = 'Ödeme girişlere bölünmez, toptancı hesabının toplamından düşer. Şu an kalan: ' + sm(A.rem) + '.';
+      + dateNote('ör. Havale ile, elden verdim');
+    hint = 'Şu an kalan ' + sm(A.rem) + '.';
   } else if (mode === 'iade') {
     b = '<div class="grid2"><label class="f">İade edilen palet (adet)<input id="sdN" inputmode="decimal" autocomplete="off" placeholder="ör. 5"></label>'
       + '<label class="f">Borçtan düşecek (₺)<input id="sdAmt" inputmode="decimal" autocomplete="off" placeholder="' + (L.unit != null ? 'adetten hesaplanır' : 'ör. 1.250') + '"></label></div>'
-      + dateF('sdDate') + '<label class="f">Not<input id="sdNote" autocomplete="off" placeholder="ör. şoföre verdim"></label>';
-    hint = 'İade edilmemiş palet parası ' + money(L.open) + (L.unit != null ? ', palet başı ortalama ' + money(L.unit) + '. Tutar farklıysa elle yaz.' : '. Girişlerde palet sayısı yok, tutarı elle yaz.') + ' Toptancı hesabındaki borçtan düşer, ayrıca ödeme girmen gerekmez.';
+      + dateNote('ör. şoföre verdim');
+    hint = 'İade edilmemiş palet parası ' + money(L.open) + (L.unit != null ? ', palet başı ortalama ' + money(L.unit) + '.' : '. Girişlerde palet sayısı yok, tutarı elle yaz.');
   }
   $('sdT').textContent = title;
   $('sdBody').innerHTML = b; $('sdHint').textContent = hint; $('sdErr').textContent = '';
@@ -126,7 +131,10 @@ function openSd(mode, ref) {
   $('dlgSup').showModal();
   var f = $('sdBody').querySelector('input'); if (f && mode !== 'bilgi') f.focus();
 }
-function sdErr(m) { $('sdErr').textContent = m; }
+function sdErr(m) {
+  $('sdErr').textContent = m;
+  var d = $('sdBody').querySelector('details'); if (d && /tarih/i.test(m)) d.open = true;
+}
 function saveSd() {
   var t = supOf(stSup), m = sdMode, msg = '', s = sdRef && byId(db.ships, sdRef);
   if (!t && m !== 'yeni' && m !== 'shpay' && m !== 'depback') return;

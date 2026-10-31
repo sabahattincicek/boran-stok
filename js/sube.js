@@ -4,15 +4,18 @@
 mountDialog(`
 <dialog id="dlgAcct" aria-labelledby="acT"><div class="sheet">
   <header><h2 id="acT">Şubeler</h2><button type="button" data-close>Kapat</button></header>
-  <p class="hint">Her şubenin girişleri, satışları ve diğer kayıtları birbirinden bağımsızdır; toptancılar bütün şubelerde ortaktır (hesabı şube şube tutulur). Üstteki seçimle şubeler arasında geçersin. Adı kutuda değiştirince kaydedilir. Silinen şubenin kayıtları geri gelmez; silmeden önce o şubenin yedeğini al.</p>
   <div class="list" id="acList"></div>
   <div class="row"><input id="acNew" class="grow" autocomplete="off" placeholder="Yeni şube adı, ör. Merkez" aria-label="Yeni şube adı"><button type="button" class="primary" id="acAdd">Şube ekle</button></div>
   <p class="err" id="acErr" role="alert"></p>
+  <details class="more"><summary><span>Şubeler nasıl çalışır?</span></summary><div class="morein"><p class="hint">Her şubenin girişleri, satışları ve diğer kayıtları birbirinden bağımsızdır; toptancılar bütün şubelerde ortaktır (hesabı şube şube tutulur). Üstteki seçimle şubeler arasında geçersin. Adı kutuda değiştirince kaydedilir. Silinen şubenin kayıtları geri gelmez; silmeden önce o şubenin yedeğini al.</p></div></details>
 </div></dialog>`);
 
 function renderAcct() {
   $('acSel').innerHTML = accts().map(function (a) { return '<option value="' + a.id + '"' + (a.id === acct.id ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join('');
   document.title = 'Boran Stok · ' + acct.name;
+  // tek şube varken seçim gereksiz, sadece "Şubeler" kalır
+  var many = accts().length > 1;
+  $('acSel').hidden = !many; document.querySelector('.acct label').hidden = !many;
 }
 function renderAcctList() {
   var l = accts();
