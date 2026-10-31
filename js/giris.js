@@ -12,8 +12,11 @@ mountDialog(`
   <div class="list" id="fLines"></div>
   <button type="button" id="fAddLine">+ Başka ürün ekle</button>
   <div class="fblk">
-    <div class="fh"><span>Palet parası (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Bu girişin paletleri için yazılan toplam para. Maliyete eklenmez, toptancı hesabına yazılır; paletleri iade edince toptancının sayfasından "Palet iadesi" ile borçtan düşer. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
-    <input id="fDep" inputmode="decimal" autocomplete="off" placeholder="Boşsa palet parası yok" aria-label="Palet parası">
+    <div class="fh"><span>Palet parası</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Palet başı ya da toplamı yaz; diğeri ürünlerdeki palet sayısından hesaplanır. Maliyete eklenmez, toptancı hesabına yazılır; paletleri iade edince toptancının sayfasından "Palet iadesi" ile borçtan düşer. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fDepIn"> toplam fiyatın içinde</label></div>
+    <div class="grid2">
+      <label class="f">Palet başı (₺)<input id="fDepPer" inputmode="decimal" autocomplete="off" placeholder="ör. 250"></label>
+      <label class="f">Toplam palet parası (₺)<input id="fDep" inputmode="decimal" autocomplete="off" placeholder="Boşsa yok"></label>
+    </div>
   </div>
   <div class="fblk">
     <div class="fh"><span>Nakliye (₺)</span><span class="info" tabindex="0" role="button" aria-label="Açıklama">i<span class="tip">Koli sayısına göre çeşitlerin maliyetine eklenir ve toptancı hesabına yazılır. <b>Toplam fiyatın içinde</b> işaretliyse aşağıdaki toplam fiyata dahildir, mal bedeli hesaplanırken düşülür.</span></span><label class="inc"><input type="checkbox" id="fNakIn"> toplam fiyatın içinde</label></div>
@@ -92,6 +95,7 @@ function openEntry(shipId, preset, supId) {
   $('fNakIn').checked = !!(s && s.nakIn);
   // palet parası çoğunlukla toplamın içinde
   $('fDep').value = s && s.dep > 0 ? gnum(amt(s.dep)) : '';
+  $('fDepPer').value = '';
   $('fDepIn').checked = s && s.dep > 0 ? !!s.depIn : true;
   fCosts = s && s.costs ? s.costs.map(function (c) { return { desc: c.desc, amount: gnum(amt(c.amount)), inc: !!c.inc }; }) : [];
   renderCosts();
@@ -131,9 +135,20 @@ function readCosts() {
   r.inSum = (r.nakIn ? r.nak || 0 : 0) + r.list.reduce(function (t, c) { return t + (c.inc ? c.amount : 0); }, 0);
   return r;
 }
-function readDep() {
-  var raw = $('fDep').value.trim(), tot = num(raw);
-  return { tot: tot, inc: $('fDepIn').checked, err: raw && tot == null ? 'Palet parasını sayı olarak yaz, ör. 1500.' : '' };
+// Palet başı ve toplamdan sadece biri dolu olur; diğeri ürünlerdeki palet sayısından hesaplanır.
+function readDep(rows) {
+  var perRaw = $('fDepPer').value.trim(), raw = $('fDep').value.trim(), palN = 0, miss = 0;
+  rows.forEach(function (f) { if (f.palet && !f.bad) palN += f.palet; else if (f.koli) miss++; });
+  var known = palN && !miss, d = { tot: num(raw), inc: $('fDepIn').checked, err: '' };
+  if (perRaw) {
+    var per = num(perRaw);
+    d.tot = per != null && known ? Math.round(per * palN * 100) / 100 : null;
+    d.totCalc = per != null && known;
+    if (per == null) d.err = 'Palet başını sayı olarak yaz, ör. 250.';
+    else if (!known) { d.err = 'Palet başından toplamı hesaplamak için her ürünün palet sayısını yaz ya da toplam palet parasını yaz.'; d.noPal = true; }
+  } else if (raw && d.tot == null) d.err = 'Palet parasını sayı olarak yaz, ör. 1500.';
+  else if (d.tot && known) d.perCalc = d.tot / palN;
+  return d;
 }
 var PH = { koli: 'ör. 216', kpp: 'ör. 72', palet: 'ör. 3', total: 'boşsa toplamdan pay' };
 // seçili toptancının ürün listesi (markalara göre); listesi boşsa ya da toptancı yoksa marka ve çeşit yazılır
@@ -206,7 +221,7 @@ function spread(lines, grand) {
 function readForm() {
   var F = { rows: fRows.map(readRow), grandRaw: $('fTotal').value.trim() };
   F.grand = num(F.grandRaw);
-  F.xc = readCosts(); F.dp = readDep();
+  F.xc = readCosts(); F.dp = readDep(F.rows);
   F.inSum = F.xc.inSum + (F.dp.inc && F.dp.tot ? F.dp.tot : 0);
   F.goods = F.grand == null ? null : Math.round((F.grand - F.inSum) * 100) / 100;
   if (F.goods != null && F.goods < -0.004) F.inErr = 'Toplam fiyatın içinde işaretlenenler (' + money(F.inSum) + '), toplam fiyattan (' + money(F.grand) + ') fazla.';
@@ -251,7 +266,10 @@ function calc() {
     if (t.total != null) { sum += t.total; priced++; }
   });
   bad($('fTotal'), sp.err || F.inErr);
-  bad($('fDep'), dp.err);
+  $('fDepPer').placeholder = dp.perCalc ? '= ' + fmt(dp.perCalc) : 'ör. 250';
+  $('fDep').placeholder = dp.totCalc ? '= ' + fmt(dp.tot) : 'Boşsa yok';
+  bad($('fDepPer'), dp.noPal);
+  bad($('fDep'));
   bad($('fNak'));
   document.querySelectorAll('#fCosts [data-c="amount"]').forEach(function (x) { bad(x); });
   var paid = num($('fPaid').value);
@@ -413,7 +431,11 @@ $('fAddLine').addEventListener('click', addRow);
 $('fPaid').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
 $('fTotal').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
 $('fNak').addEventListener('input', function () { $('fErr').textContent = ''; calc(); });
-['fDep', 'fDepIn', 'fNakIn'].forEach(function (id) { $(id).addEventListener(/In$/.test(id) ? 'change' : 'input', function () { $('fErr').textContent = ''; calc(); }); });
+// palet başı ve toplam: yazılan kutu esas, öteki boşalır ve hesaplanan değeri gösterir
+[['fDepPer', 'fDep'], ['fDep', 'fDepPer']].forEach(function (p) {
+  $(p[0]).addEventListener('input', function () { if (this.value.trim()) $(p[1]).value = ''; $('fErr').textContent = ''; calc(); });
+});
+['fDepIn', 'fNakIn'].forEach(function (id) { $(id).addEventListener('change', function () { $('fErr').textContent = ''; calc(); }); });
 $('dlgEntry').addEventListener('input', liveNum, true);
 $('fCosts').addEventListener('input', function (ev) {
   var k = ev.target.dataset.c, el = ev.target.closest('.xrow'); if (!k || !el) return;

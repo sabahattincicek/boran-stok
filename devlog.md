@@ -2,6 +2,12 @@
 
 En yeni kayıt en üstte.
 
+## 2026-10-31 09:14 — Girişte palet parası iki kutu: palet başı ve toplam
+- Giriş formunda "Palet başı (₺)" (`#fDepPer`) ve "Toplam palet parası (₺)" (`#fDep`). Yazılan kutu esas, öteki boşalır ve ürünlerdeki palet sayısından hesaplanan değeri "= …" diye gösterir (`readDep(rows)`). İkisi aynı anda dolu olamadığı için çelişki kontrolü yok; palet sayısı değişince hesap güncellenir.
+- Kayıtta yine sadece toplam tutuluyor (`s.dep`); yedek biçimi değişmedi. Düzenlemede toplam dolu, palet başı hesaplı açılır.
+- Palet başı yazılıp palet sayısı bilinmeyen bir ürün varsa kırmızı + hata, kaydetmez; toplam yazılarak geçilir.
+- Headless Chrome'da denendi (telefon genişliği, geçici profil): 11 adım geçti, ekran görüntüsüne bakıldı.
+
 ## 2026-10-31 09:04 — `subeler-toptancilar` main'e birleştirildi
 - Commit edilmemiş işler (ortak toptancılar, sade palet) commit edildi; branch main'e fast-forward ile alınıp `origin/main`'e gönderildi.
 
